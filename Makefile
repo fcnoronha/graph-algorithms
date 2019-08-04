@@ -6,7 +6,7 @@
 # STD = -ansi
 STD = -std=c99
 
-OP1  = -Wall -Wextra -Wpedantic -Wshadow
+OP1 = -Wall -Wextra -Wpedantic -Wshadow
 OP2 = -Wno-unused-result -Wno-unused-function
 
 ## optimization

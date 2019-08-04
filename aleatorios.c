@@ -26,21 +26,25 @@
 #include <time.h>
 #include "GRAPHlists.h"
 
+// Protottipos de funções auxiliares
+void showInDegree( Graph G);
+void showOutDegree( Graph G);
+
 int main (int na, char* arg[]) {
 
     int V, A;
 
-    // caso seja igual á 1, usa a função GRAPHrand1(). Caso seja 2, usa
+    // Caso seja igual á 1, usa a função GRAPHrand1(). Caso seja 2, usa
     // a função GRAPHrand2()
-    int randN = 1;
+    int randN = 2;
 
-    // primeira validação da entrada
+    // Primeira validação da entrada
     if (na < 2) {
         printf( "\nUsage: %s V A\n\n", arg[0]);
         exit( EXIT_FAILURE);
     }
 
-    // seguna validação da entrada
+    // Segunda validação da entrada
     if (sscanf( arg[1], "%d", &V) != 1 || V < 0) {
         printf( "\nV must be a non-negative integer\n\n");
         exit( EXIT_FAILURE);
@@ -50,24 +54,24 @@ int main (int na, char* arg[]) {
         exit( EXIT_FAILURE);
     }
 
-    // terceira validação da entrada. Necessaria pela suposição de
+    // Terceira validação da entrada. Necessaria pela suposição de
     // GRAPHrand1() que A <= V*(V-1)
     if (randN == 1 && A > V*(V-1)) {
         printf( "\nA and V must hold A <= V*(V-1)\n\n");
         exit( EXIT_FAILURE);
     }
 
-    // quarta validação da entrada. Necessaria pela suposição de
+    // Quarta validação da entrada. Necessaria pela suposição de
     // GRAPHrand2() que V >= 2 e A <= V*(V-1).
     if (randN == 2 && (V < 2 || A > V*(V-1))) {
         printf( "\nA and V must hold V >= 2 and A <= V*(V-1)\n\n");
         exit( EXIT_FAILURE);
     }
 
-    // tempo antes da criação do grafo
+    // Tempo antes da criação do grafo
     double start = (double) clock () / CLOCKS_PER_SEC;
 
-    // grafo a ser gerado
+    // Grafo a ser gerado
     Graph G;
     if (randN == 1) {
         G = GRAPHrand1( V, A);
@@ -76,31 +80,83 @@ int main (int na, char* arg[]) {
         G = GRAPHrand2( V, A);
     }
 
-    // tempos após a criação do grafo
+    // Tempo após a criação do grafo
     double stop = (double) clock () / CLOCKS_PER_SEC;
 
-    // tempo gasto para a criação do grafo
+    // Tempo gasto para a criação do grafo
     double elapsedTime = stop - start;
 
     printf( "Numero de vertices: %d\n", G->V);
-    printf( "Numero de arestas: %f\n", G->A);
-    printf( "Tempo decorrido: %fs\n", elapsedTime);
+    printf( "Numero de arestas: %d\n", G->A);
+    printf( "Tempo decorrido: %fs\n\n", elapsedTime);
 
-    // exibindo na tela uma tabela com o número de vértices que têm grau
-    // de saída g, com g pertecente ao intervalo [0, m], onde m é o grau
-    // de saida maximo.
+    showOutDegree( G);
+    showInDegree( G);
 
-
-    // tabela analoga á anterior, mas para o grau de entrada
-
-    // imprimindo as listas de adjacência do grafo caso ele tenha menos
+    // Imprimindo as listas de adjacência do grafo caso ele tenha menos
     // que 30 vertices
-    if (G->V < 30) {
+    if (G->V < 30)
         GRAPHshow( G);
-    }
 
-    // limpeza final:
+    // Limpeza final:
     printf( "\n");
     GRAPHdestroy( G);
     return EXIT_SUCCESS;
+}
+
+// Função que imprime uma tabela com o numero de vertices com grau de
+// saida g, com g pertencente ao intervalo [0, m], onde m é o grau de
+// saida maximo.
+void
+showOutDegree( Graph G) {
+    int *grauSaida = calloc( G->V, sizeof(int));
+    int grauMaximo = 0;
+
+    for (vertex v = 0; v < G->V; v++) {
+        int grauV = 0;
+        link adj = G->adj[v];
+        while (adj != NULL) {
+            grauV++;
+            adj = adj->next;
+        }
+        grauSaida[grauV]++;
+        if (grauV > grauMaximo) grauMaximo = grauV;
+    }
+
+    printf("Numero de vertices com grau de saida igual á [g]:\n");
+    for (int g = 0; g <= grauMaximo; g++)
+        printf("[%d]: %d\n", g, grauSaida[g]);
+    printf("\n");
+    free(grauSaida);
+}
+
+// Função que imprime uma tabela com o numero de vertices com grau de
+// entrada g, com g pertencente ao intervalo [0, m], onde m é o grau de
+// entrada maximo.
+void
+showInDegree( Graph G) {
+    int *grauEntrada = calloc( G->V, sizeof(int));
+    int *grauEntradaUnitario = calloc( G->V, sizeof(int));
+
+    for (vertex v = 0; v < G->V; v++) {
+        link adj = G->adj[v];
+        while (adj != NULL) {
+            grauEntradaUnitario[adj->w]++;
+            adj = adj->next;
+        }
+    }
+
+    int grauMaximo = 0;
+    for (vertex v = 0; v < G->V; v++) {
+        grauEntrada[ grauEntradaUnitario[v] ]++;
+        if (grauEntradaUnitario[v] > grauMaximo)
+            grauMaximo = grauEntradaUnitario[v];
+    }
+
+    printf( "Numero de vertices com grau de entrada igual á [g]:\n");
+    for (int g = 0; g <= grauMaximo; g++)
+        printf( "[%d]: %d\n", g, grauEntrada[g]);
+    printf( "\n");
+    free( grauEntrada);
+    free( grauEntradaUnitario);
 }
