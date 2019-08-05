@@ -1,11 +1,13 @@
 // MAC0328 (2019) 
-// Altere, modifique, e acrescente à vontade. Sugiro marcar os trechos 
-// de código modificados/acrescentados com um comentário do tipo
-// "// novo". Preserve o meu bom layout (veja www.ime.usp.br/~pf/
-// algoritmos/aulas/layout.html) e não use tabs. 
+// Muitas funções discutidas nas minhas notas de aula e nos exercícios
+// ainda não estão nesta biblioteca. Acrecente essas funções. Modifique
+// as funções que já estão na biblioteca, se achar necessário. Sugiro
+// marcar os trechos de código modificados/acrescentados com um
+// comentário do tipo "// novo". Preserve meu bom layout (veja
+// www.ime.usp.br/~pf/algoritmos/aulas/layout.html) e não use tabs. 
 
 // Este arquivo: GRAPHlists.h (codificação UTF-8)
-// Data: 2019-07-18
+// Data: 2019-08-04
 // Autor: Paulo Feofiloff
 //
 // Esta é a interface de uma biblioteca de manipulação de grafos
@@ -115,29 +117,59 @@ GRAPHinit( int V);
 void 
 GRAPHinsertArc( Graph G, vertex v, vertex w);
 
+// A função GRAPHinsertArcQuick() insere um arco v-w no grafo G sem
+// antes verificar se o arco v-w já existe. Esta função só deve ser
+// usada se o cliente souber que G não tem arco v-w. A função supõe que
+// v e w são distintos e menores que G->V.
+void 
+GRAPHinsertArcQuick( Graph G, vertex v, vertex w);
+
 // A função GRAPHinsertArc_C() insere um arco v-w com custo cst no
 // grafo G. A função supõe que v e w são distintos e menores que G->V.
 // Se o grafo já tem um arco v-w, o novo custo cst substitui o antigo.
 void 
 GRAPHinsertArc_C( Graph G, vertex v, vertex w, int cst);
 
+// A função GRAPHinsertArcQuick() insere um arco v-w com suto cst no
+// grafo G sem antes verificar se o arco v-w já existe. Esta função só
+// deve ser se o cliente souber que G não tem arco v-w.
+void 
+GRAPHinsertArcQuick_C( Graph G, vertex v, vertex w, int cst);
+
 // A função UGRAPHinsertEdge() insere uma aresta v-w no grafo não-
-// -dirigido G. A função supõe que v e w são distintos e menores que
+// dirigido G. A função supõe que v e w são distintos e menores que
 // G->V. Se o grafo já tem uma aresta v-w, a função não faz nada.
 void 
 UGRAPHinsertEdge( UGraph G, vertex v, vertex w);
 
+// Esta função insere uma aresta v-w no grafo não-dirigido G sem antes
+// verificar se a aresta já existe. A função só deve ser usada se o
+// usuário souber que G não tem a aresta v-w. A função supõe que v e w
+// são distintos e menores que G->V.
+void 
+UGRAPHinsertEdgeQuick( UGraph G, vertex v, vertex w);
+
 // Esta função insere uma aresta v-w com custo cst no grafo não-
-// -dirigido G. A função supõe que v e w são distintos e menores que
+// dirigido G. A função supõe que v e w são distintos e menores que
 // G->V. Se o grafo já tem uma aresta v-w, a função não faz nada.
 void 
 UGRAPHinsertEdge_C( UGraph G, vertex v, vertex w, int cst);
 
-// A função GRAPHremoveArc() remove o arco v-w do grafo G. A função
-// supõe que v e w são distintos e menores que G->V. Se não existe arco
-// v-w, a função não faz nada.
+// Esta função insere uma aresta v-w com custo cst no grafo não-
+// dirigido G sem antes verificar se a aresta já existe. A função supõe
+// que v e w são distintos e menores que G->V.
+void 
+UGRAPHinsertEdgeQuick_C( UGraph G, vertex v, vertex w, int cst);
+
+// A função GRAPHremoveArc() remove o arco v-w do grafo G. Se não existe
+// arco v-w, a função não faz nada.
 void 
 GRAPHremoveArc( Graph G, vertex v, vertex w);
+
+// A função UGRAPHremoveEdge() remove aresta v-w do grafo não-dirigido
+// G. Se não existe aresta v-w, a função não faz nada.
+void 
+UGRAPHremoveEdge( UGraph G, vertex v, vertex w);
 
 // Para cada vértice v do grafo G, esta função imprime, em uma linha da
 // saída padrão, todos os vértices adjacentes a v.
@@ -159,6 +191,10 @@ Graph
 GRAPHcopy( Graph G);
 
 #define UGRAPHcopy GRAPHcopy
+
+// Decide se os grafos G e H são iguais.
+bool 
+GRAPHisEqual( Graph G, Graph H);
 
 // Esta função desaloca toda a memória usada pela estrutura de dados que
 // representa o grafo G.
@@ -199,7 +235,7 @@ int
 GRAPHcost_C( Graph G);
 
 // Esta função devolve a soma dos custos das arestas do grafo não-
-// -dirigido G. (A função supõe que cada um dos dois arcos que formam
+// dirigido G. (A função supõe que cada um dos dois arcos que formam
 // uma aresta tem custo igual ao da aresta.) Se o cálculo da soma causar
 // overflow aritmético, imprime mensagem e para.
 int 
@@ -315,9 +351,9 @@ GRAPHinputLists_C(  FILE *infile);
 
 #define UGRAPHinputLists_C GRAPHinputLists_C
 
-// O tipo edge representa uma aresta. As pontas da aresta são v e w.
-// (Isso é usado apenas na implementação do algoritmo de Kruskal para
-// árvore geradora de custo mínimo.)
+// O tipo edge representa uma aresta. As pontas de uma aresta e são e.v
+// e e.w. (Isso é usado apenas na implementação do algoritmo de Kruskal
+// para árvore geradora de custo mínimo.)
 typedef struct {vertex v, w; int cst;} edge;
 
 // Armazena as arestas do grafo não-dirigido G no vetor e[0..E-1], sendo
@@ -361,57 +397,51 @@ num2perm( int V, int num[], vertex perm[]);
 // topológica se i < j para cada arco vv[i]-vv[j] do grafo. Uma
 // permutação vv[] dos vértices é anti-topológica se i > j para cada
 // arco vv[i]-vv[j] do grafo.
-
+ 
 
 
 // Grafos aleatórios
 ////////////////////////////////////////////////////////////////////////
 
-// Constrói grafo aleatório com vértices 0..V-1 e exatamente A arcos. A
-// função supõe que A <= V*(V-1). Se A for próximo de V*(V-1), a função
-// pode consumir muuuito tempo. Por isso, a função é mais usada para 
-// gerar grafos esparsos.
+// Constrói grafo aleatório com vértices 0..V-1 e exatamente A arcos. Se
+// A for maior que V*(V-1), a função troca A por V*(V-1). Se A for
+// próximo de V*(V-1), a função consume muuuito tempo. Por isso, a
+// função não deve ser usada para gerar grafos muito densos.
 Graph 
 GRAPHrand1( int V, int A);
 
 // Constrói grafo não-dirigido aleatório com vértices 0..V-1 e
-// exatamente E arestas. A função supõe que E <= V*(V-1)/2. Se E for
-// próximo de V*(V-1)/2, a função pode consumir muuuito tempo. Por isso,
-// a função é mais usada para gerar grafos esparsos.
+// exatamente E arestas. Se E for maior que V*(V-1)/2, a função troca E
+// por V*(V-1)/2. Se E for proximo de V*(V-1)/2, a função consume
+// muuuito tempo. Por isso, a função não deve ser usada para gerar
+// grafos muito densos.
 UGraph 
 UGRAPHrand1( int V, int E);
 
-// Constrói grafo aleatório com vértices 0..V-1 e exatamente A arcos.
-// A função supõe que A <= V*(V-1). Se A for próximo de V*(V-1), a
-// função pode consumir muuuito tempo. Por isso, a função é mais usada
-// para gerar grafos esparsos. Os custos dos arcos são escolhidos
-// aleatoriamente no intervalo semi-aberto [cmin,cmax).
+// Esta é a versão de GRAPHrand1() para grafos com custos nos arcos. Os
+// custos dos arcos são escolhidos aleatoriamente no intervalo semi-
+// aberto [cmin,cmax).
 Graph 
 GRAPHrand1_C( int V, int A, int cmin, int cmax);
 
-// Constrói grafo não-dirigido aleatório com vértices 0..V-1 e
-// exatamente E arestas. A função supõe que E <= V*(V-1)/2. Se E for
-// próximo de V*(V-1)/2, a função pode consumir muuuito tempo. Por isso,
-// a função é mais usada para gerar grafos esparsos. Os custos das
-// arestas são escolhidos aleatoriamente no intervalo semi-aberto
-// [cmin,cmax).
+// Esta é a versão de UGRAPHrand1() para grafos não-dirigidos com custos
+// nas arestas. Os custos são escolhidos aleatoriamente no intervalo
+// semi-aberto [cmin,cmax).
 UGraph 
 UGRAPHrand1_C( int V, int E, int cmin, int cmax);
 
 // Constrói um grafo aleatório com vértices 0..V-1. Cada um dos V*(V-1)
-// possíveis arcos é construído com probabilidade p, sendo p calculado
-// de modo que o número esperado de arcos seja A. A função supõe que 
-// V >= 2 e A <= V*(V-1). A função é mais usada para gerar grafos
-// densos.
+// possíveis arcos é inserido com probabilidade p, sendo p calculado de
+// modo que o número esperado de arcos seja A. A função supõe que 
+// V >= 2 e A <= V*(V-1). (Se V for menor que 2, a função adota V = 2.
+// Se A for maior que V*(V-1), a função adota A = V*(V-1).) A função é
+// mais usada para gerar grafos densos.
 Graph 
 GRAPHrand2( int V, int A);
 
-// Constrói um grafo aleatório com vértices 0..V-1. Cada um dos V*(V-1)
-// possíveis arcos é construído com probabilidade p, sendo p calculado
-// de modo que o número esperado de arcos seja A. A função supõe que 
-// V >= 2 e A <= V*(V-1). A função é mais usada para gerar grafos
-// densos. Os custos dos arcos são escolhidos aleatoriamente no
-// intervalo semi-aberto [cmin,cmax).
+// Esta é a versão de GRAPHrand2() para grafos com custos nos arcos. Os
+// custos dos arcos são escolhidos aleatoriamente no intervalo
+// semi-aberto [cmin,cmax).
 Graph 
 GRAPHrand2_C( int V, int A, int cmin, int cmax);
 
@@ -589,15 +619,20 @@ GRAPHdfsIterative( Graph G, int *pre, int *post, vertex *pa);
 // (= path) é um passeio sem arcos repetidos. Um ciclo (= cycle) é um
 // caminho fechado. 
 
-// Decide se o grafo G admite uma numeração topológica. Em caso
-// afirmativo, armazena no vetor post[0..V-1] uma numeração anti-
-// -topológica de G.
+// Decide se o grafo G admite tem um ciclo. Em caso negativo, armazena
+// em post[0...V-1] uma numeração anti-topológica de G.
 bool 
-GRAPHisTopo( Graph G, int *post);
+GRAPHhasCycle( Graph G, int *post);
+
+// Decide se o grafo G admite uma numeração topológica.
+bool 
+GRAPHisTopological( Graph G, int *post);
+
+#define GRAPHisDag GRAPHisTopological
 
 // Um grafo é um dag (ou seja, acíclico) se e somente se tem uma
 // numeração topológica dos vértices.
-#define GRAPHisDag GRAPHisTopo
+#define GRAPHisDag GRAPHisTopological
 
 
 
@@ -634,7 +669,12 @@ DAGshortestPaths( Dag G, vertex *vv, vertex s, vertex *pa, int *dist);
 
 
 
-// Busca em largura (= breadth-first search = BFS) e caminhos mínimos
+// Busca em largura (= breadth-first search = BFS)
+////////////////////////////////////////////////////////////////////////
+
+
+
+// Algoritmo de caminhos mínimos
 ////////////////////////////////////////////////////////////////////////
 
 // Esta função recebe um grafo G e um vértice s de G e armazena em
@@ -648,7 +688,7 @@ GRAPHshortestPaths( Graph G, vertex s, int dist[], vertex pa[]);
 
 
 
-// Circuitos em grafos não-dirigidos
+// Circuitos e florestas (não-radicadas)
 ////////////////////////////////////////////////////////////////////////
 
 // Grafos têm ciclos, grafos não-dirigidos têm circuitos.
@@ -661,11 +701,6 @@ GRAPHshortestPaths( Graph G, vertex s, int dist[], vertex pa[]);
 // caso de resposta negativa, G é uma floresta.
 bool 
 UGRAPHhasCircuit( UGraph G);
-
-
-
-// Circuitos e florestas (não-radicadas, i.e., não-dirigidas)
-////////////////////////////////////////////////////////////////////////
 
 // Decide se o grafo não-dirigido G é uma floresta.
 bool
@@ -744,14 +779,6 @@ GRAPHscNaive2( Graph G, int *sc);
 // proporcional a V+A.
 int 
 GRAPHscTarjan( Graph G, int *sc);
-
-// Esta função devolve o número (quantidade) de componentes fortes do
-// grafo G. Também atribui um rótulo sc[v] (os rótulos são 0,1,2,...) 
-// a cada vértice v de G de modo que dois vértices tenham o mesmo 
-// rótulo se e somente se os dois pertencem à mesma componente forte.  
-// A função é linear: consome tempo proporcional a V+A.
-int 
-GRAPHscTarjanSedgewick( Graph G, int *sc);
 
 // Versão default das funções de cálculo de componentes fortes.
 #define GRAPHscT GRAPHscTarjan

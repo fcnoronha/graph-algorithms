@@ -1,16 +1,18 @@
 // MAC0328 (2019)
-// Altere, modifique, e acrescente à vontade. Sugiro marcar os trechos
-// de código modificados/acrescentados com um comentário do tipo
-// "// novo". Preserve o meu bom layout (veja www.ime.usp.br/~pf/
-// algoritmos/aulas/layout.html) e não use tabs.
+// Muitas funções discutidas nas minhas notas de aula e nos exercícios
+// ainda não estão nesta biblioteca. Acrecente essas funções. Modifique
+// as funções que já estão na biblioteca, se achar necessário. Sugiro
+// marcar os trechos de código modificados/acrescentados com um
+// comentário do tipo "// novo". Preserve meu bom layout (veja
+// www.ime.usp.br/~pf/algoritmos/aulas/layout.html) e não use tabs.
 
 // Este arquivo: GRAPHlists.c (codificação UTF-8)
-// Data: 2019-07-29
+// Data: 2019-08-04
 // Autor: Paulo Feofiloff
 //
 // Esta é a implementação de uma biblioteca de manipulação de grafos
 // representados por listas de adjacência. Veja detalhes no arquivo-
-// -interface GRAPHlists.h.
+// interface GRAPHlists.h.
 //
 // Tudo foi extraído de www.ime.usp.br/~pf/algoritmos_para_grafos/,
 // que copiou muita coisa do livro "Algorithms", 3rd.ed., part 5, de
@@ -22,6 +24,7 @@
 #define DEBUG true
 
 
+
 // Estruturas de dados básicas
 ////////////////////////////////////////////////////////////////////////
 
@@ -30,6 +33,7 @@
 // Graph. Também contém inclui as interfaces QUEUE.h, PQ.h, UF.h e
 // MYTOOLS.h. Também contém as interfaces padrão stdlib.h, stdio.h,
 // string.h, limits.h e stdbool.h.
+
 
 
 // Ferramentas para construção de grafos
@@ -70,16 +74,6 @@ NEWnode_C( vertex w, link next, int cst) {
     return a;
 }
 
-// Função privada auxiliar usada por GRAPHdestroy(). Ela libera os nós
-// da lista encadeada lst.
-static void
-freelist( link lst) {
-    if (lst != NULL) {
-        freelist( lst->next);
-        free( lst);
-    }
-}
-
 // **NOVA**, implementada por @felipe-noronha
 // Função privada auxiliar. Retorna true se o grafo ja tem um arco v-w,
 // retorna false caso contrario. Ela assume que v e w são distintos e
@@ -103,43 +97,64 @@ GRAPHinsertArc( Graph G, vertex v, vertex w) {
     G->A++;
 }
 
-// **NOVA**, implementada por @felipe-noronha
 void
-GRAPHinsertArc_C( Graph G, vertex v, vertex w, int cst) {
-    if (GRAPHhasArc( G, v, w)) {
-        link a = G->adj[v];
-        while (a->w != w) a = a->next;
-        a->cst = cst;
-        return;
-    }
-    link a = NEWnode_C( w, G->adj[v], cst);
-    G->adj[v] = a;
+GRAPHinsertArcQuick( Graph G, vertex v, vertex w) {
+    G->adj[v] = NEWnode( w, G->adj[v]);
     G->A++;
 }
 
-// **NOVA**, implementada por @felipe-noronha
 void
-UGRAPHinsertEdge( UGraph G, vertex v, vertex w){
-    if (GRAPHhasArc( G, v, w)) return;
+UGRAPHinsertEdge( UGraph G, vertex v, vertex w) {
     GRAPHinsertArc( G, v, w);
     GRAPHinsertArc( G, w, v);
-    G->A++;
 }
 
-// **NOVA**, implementada por @felipe-noronha
 void
-UGRAPHinsertEdge_C( UGraph G, vertex v, vertex w, int cst){
-    if (GRAPHhasArc( G, v, w)) return;
-    GRAPHinsertArc_C( G, v, w, cst);
-    GRAPHinsertArc_C( G, w, v, cst);
-    G->A++;
+UGRAPHinsertEdgeQuick( UGraph G, vertex v, vertex w) {
+    GRAPHinsertArcQuick( G, v, w);
+    GRAPHinsertArcQuick( G, w, v);
 }
 
 // **NOVA**, implementada por @felipe-noronha
 void
 GRAPHremoveArc( Graph G, vertex v, vertex w) {
     if (!GRAPHhasArc( G, v, w)) return;
-    printf("\n*Ainda não implementei a funão GRAPHremoveArc()*\n\n");
+    link atual = G->adj[v], ant = NULL;
+    if (atual != NULL && atual->w == w) {
+        G->adj[v] = atual->next;
+        free( atual);
+        G->A--;
+        return;
+    }
+    while (atual != NULL && atual->w != w) {
+        ant = atual;
+        atual = atual->next;
+    }
+    if (atual == NULL) return;
+    ant->next = atual->next;
+    free( atual);
+    G->A--;
+    return;
+}
+
+void
+UGRAPHremoveEdge( UGraph G, vertex v, vertex w) {
+    GRAPHremoveArc( G, v, w);
+    GRAPHremoveArc( G, w, v);
+}
+
+// **NOVA**, implementada por @felipe-noronha
+Graph
+GRAPHcopy( Graph G) {
+    Graph GG = GRAPHinit( G->V);
+    for (vertex v = 0; v < G->V; v++) {
+        link a = G->adj[v];
+        while (a != NULL) {
+            GRAPHinsertArc( GG, v, a->w);
+            a = a->next;
+        }
+    }
+    return GG;
 }
 
 // **NOVA**, implementada por @felipe-noronha
@@ -154,23 +169,21 @@ GRAPHshow( Graph G) {
     }
 }
 
-// **NOVA**, implementada por @felipe-noronha
 void
-GRAPHshow_C( Graph G) {
-    printf("Listas de adjacência (com custo):\n");
-    for (vertex v = 0; v < G->V; v++) {
-        printf("%d:", v);
-        for (link adj = G->adj[v]; adj != NULL; adj = adj->next)
-            printf(" %d (%d)", adj->w, adj->cst);
-        printf("\n");
-    }
+GRAPHshowArcs( Graph G) {
+    for (vertex v = 0; v < G->V; ++v)
+        for (link a = G->adj[v]; a != NULL; a = a->next)
+            printf( "%d %d\n", v, a->w);
 }
 
-// **NOVA**, implementada por @felipe-noronha
-Graph
-GRAPHcopy( Graph G) {
-    printf("\n*Ainda não implementei a função GRAPHcopy()*\n\n");
-    return NULL;
+// Função privada auxiliar usada por GRAPHdestroy(). Ela libera os nós
+// da lista encadeada lst.
+static void
+freelist( link lst) {
+    if (lst != NULL) {
+        freelist( lst->next);
+        free( lst);
+    }
 }
 
 void
@@ -216,46 +229,6 @@ GRAPHinvertLists_I( Graph G) {
     }
 }
 
-// Função privada auxiliar usada por GRAPHcost_C(). Esta função recebe
-// números bons t e c e decide se t+c é bom. Dizemos que um número x é
-// bom se -M <= x <= +M, sendo M = INT_MAX.
-static bool
-noOverflow( int t, int c) {
-    const int M = INT_MAX;
-    // Fato 1: c >= 0 sse M-c é bom.
-    // Fato 2: Suponha que c >= 0. Então t <= M-c sse t+c é bom.
-    // Fato 1': c <= 0 sse -M-c é bom.
-    // Fato 2': Suponha que c <= 0. Então t >= -M-c sse t+c é bom.
-    if (c >= 0) {
-        if (t <= M-c) return true; // "M-c" não produz overflow
-        else return false;
-    } else {
-        if (t >= -M-c) return true; // "-M-c" não produz overflow
-        else return false;
-    }
-}
-
-int
-GRAPHcost_C( Graph G) {
-    int cost = 0;
-    for (vertex v = 0; v < G->V; ++v)
-        for (link a = G->adj[v]; a != NULL; a = a->next) {
-            if (noOverflow( cost, a->cst)) cost += a->cst;
-            else {
-                printf( "\n\n***Erro: overflow iminente!\n\n");
-                exit( EXIT_FAILURE);
-            }
-        }
-    return cost;
-}
-
-int
-UGRAPHcost_C( UGraph G) {
-    // cada aresta é representada por dois arcos antiparalelos
-    // e cada um desses arcos tem custo igual ao custo da aresta
-    return GRAPHcost_C( G)/2;
-}
-
 Graph
 GRAPHinputArcs( FILE *infile) {
     int V, A;
@@ -266,21 +239,6 @@ GRAPHinputArcs( FILE *infile) {
         vertex v, w;
         fscanf( infile, "%d %d", &v, &w);
         GRAPHinsertArc( G, v, w);
-    }
-    // infile must be closed by client
-    return G;
-}
-
-Graph
-GRAPHinputArcs_C( FILE *infile) {
-    int V, A;
-    fscanf( infile, "%d", &V);
-    fscanf( infile, "%d", &A);
-    Graph G = GRAPHinit( V);
-    for (int i = 0; i < A; ++i) {
-        vertex v, w; int cst;
-        fscanf( infile, "%d %d %d", &v, &w, &cst);
-        GRAPHinsertArc_C( G, v, w, cst);
     }
     // infile must be closed by client
     return G;
@@ -310,32 +268,6 @@ GRAPHinputLists( FILE *infile) {
 //     se n = strlen( line) então
 //     line[n] == '\0', n > 0 e line[n-1] != '\n'.
 
-// Usa fgets() and strtok().
-Graph
-GRAPHinputLists_C( FILE *infile) {
-    char line[LINE_MAX];
-    fgets( line, LINE_MAX, infile); // A
-    string token = strtok( line, " \n"); // token != NULL
-    int V = strtol( token, NULL, 10);
-    Graph G = GRAPHinit( V);
-    for (int i = 0; i < V; i++) {
-        fgets( line, LINE_MAX, infile); // A
-        token = strtok( line, " \n"); // token != NULL
-        vertex v = strtol( token, NULL, 10); // 0 <= v < V
-        while ((token = strtok( NULL, " \n")) != NULL) {
-            vertex w = strtol( token, NULL, 10); // 0 <= w < V
-            token = strtok( NULL, " \n");
-            int cst = strtol( token, NULL, 10);
-            GRAPHinsertArc_C( G, v, w, cst);
-        } // terminou processamento dos vizinhos de v
-    }
-    GRAPHinvertLists_I( G);
-    return G;
-}
-// Observação A: line[] contém uma linha de infile;
-//     se n = strlen( line) então
-//     n < LINE_MAX, line[n] == '\0', n > 0 e line[n-1] != '\n'.
-
 void
 UGRAPHedges( UGraph G, edge e[]) {
     int i = 0;
@@ -353,18 +285,6 @@ UGRAPHedges( UGraph G, edge e[]) {
 
 // Numerações e permutações de vértices
 ////////////////////////////////////////////////////////////////////////
-
-void
-perm2num( int V, vertex perm[], int num[]) {
-    for (int i = 0; i < V; ++i)
-        num[perm[i]] = i;
-}
-
-void
-injnum2perm( int V, int num[], vertex perm[]) {
-    for (vertex v = 0; v < V; ++v)
-        perm[num[v]] = v;
-}
 
 
 
@@ -395,10 +315,10 @@ randV( Graph G) {
 // random de Eric Roberts.)
 static int
 randInteger( int a, int b) {
-     double d = (double) rand() / ((double) RAND_MAX + 1);
-     // 0 <= d < 1
-     int k = d * (b - a + 1); // 0 <= k <= b-a
-     return a + k;
+    double d = (double) rand() / ((double) RAND_MAX + 1);
+    // 0 <= d < 1
+    int k = d * (b - a + 1); // 0 <= k <= b-a
+    return a + k;
 }
 
 // Função privada auxiliar. Devolve um número real aleatório no
@@ -419,7 +339,7 @@ randPermutation( int v[], int V) {
         int r = randInteger( 0, n); // 0 <= r <= n
         int t;
         t = v[n], v[n] = v[r], v[r] = t;
-    }
+  }
 }
 
 // Código inspirado no Programa 17.7 de Sedgewick.
@@ -445,50 +365,17 @@ UGRAPHrand1( int V, int E) {
     while (G->A < A) {
         vertex v = randV( G);
         vertex w = randV( G);
-        if (v != w) {
-            GRAPHinsertArc( G, v, w);
-            GRAPHinsertArc( G, w, v);
-        }
-    }
-    return G;
-}
-
-// Código inspirado no Programa 17.7 de Sedgewick.
-Graph
-GRAPHrand1_C( int V, int A, int cmin, int cmax) {
-    Graph G = GRAPHinit( V);
-    if (A > V*(V-1)) A = V*(V-1);
-    while (G->A < A) {
-        vertex v = randV( G);
-        vertex w = randV( G);
-        int c = randInteger( cmin, cmax);
         if (v != w)
-            GRAPHinsertArc_C( G, v, w, c);
-    }
-    return G;
-}
-
-UGraph
-UGRAPHrand1_C( int V, int E, int cmin, int cmax) {
-    UGraph G = UGRAPHinit( V);
-    int A = 2*E;
-    if (A > V*(V-1)) A = V*(V-1);
-    while (G->A < A) {
-        vertex v = randV( G);
-        vertex w = randV( G);
-        int c = randInteger( cmin, cmax);
-        if (v != w) {
-            GRAPHinsertArc_C( G, v, w, c);
-            GRAPHinsertArc_C( G, w, v, c);
-        }
+            UGRAPHinsertEdge( G, v, w);
     }
     return G;
 }
 
 Graph
 GRAPHrand2( int V, int A) {
+    if (V < 2) V = 2;
     if (A > V*(V-1)) A = V*(V-1);
-    double prob = (double) A / V / (V-1);
+    double prob = (double) A / (V*(V-1));
     Graph G = GRAPHinit( V);
     for (vertex v = 0; v < V; ++v)
         for (vertex w = 0; w < V; ++w)
@@ -498,22 +385,21 @@ GRAPHrand2( int V, int A) {
     return G;
 }
 
-Graph
-GRAPHrand2_C( int V, int A, int cmin, int cmax) {
-    if (A > V*(V-1)) A = V*(V-1);
-    double prob = (double) A / V / (V-1);
-    Graph G = GRAPHinit( V);
-    for (vertex v = 0; v < V; ++v)
-        for (vertex w = 0; w < V; ++w)
-            if (v != w && rand( ) < prob*(RAND_MAX+1.0))
-                GRAPHinsertArc_C( G, v, w, randInteger( cmin, cmax));
-    return G;
-}
-
 
 
 // Construtores de grafos
 ////////////////////////////////////////////////////////////////////////
+
+Graph
+GRAPHbuildComplete( int V) {
+    Graph G;
+    G = GRAPHinit( V);
+    for (vertex v = 0; v < G->V; ++v)
+        for (vertex w = 0; w < G->V; ++w)
+            if (w != v)
+                GRAPHinsertArcQuick( G, v, w);
+    return G;
+}
 
 Graph
 GRAPHbuildPath( int V) {
@@ -522,7 +408,7 @@ GRAPHbuildPath( int V) {
     for (int i = 0; i < V; ++i) vv[i] = i;
     randPermutation( vv, V);
     for (int i = 0; i < V-1; ++i)
-        GRAPHinsertArc( G, vv[i], vv[i+1]);
+        GRAPHinsertArcQuick( G, vv[i], vv[i+1]);
     free( vv);
     return G;
 }
@@ -534,7 +420,7 @@ UGRAPHbuildPath( int V) {
     for (int i = 0; i < V; ++i) vv[i] = i;
     randPermutation( vv, V);
     for (int i = 0; i < V-1; ++i)
-        UGRAPHinsertEdge( G, vv[i], vv[i+1]);
+        UGRAPHinsertEdgeQuick( G, vv[i], vv[i+1]);
     free( vv);
     return G;
 }
@@ -546,8 +432,8 @@ GRAPHbuildCycle( int V) {
     for (int i = 0; i < V; ++i) vv[i] = i;
     randPermutation( vv, V);
     for (int i = 0; i < V-1; ++i)
-        GRAPHinsertArc( G, vv[i], vv[i+1]);
-    GRAPHinsertArc( G, vv[V-1], vv[0]);
+        GRAPHinsertArcQuick( G, vv[i], vv[i+1]);
+    GRAPHinsertArcQuick( G, vv[V-1], vv[0]);
     free( vv);
     return G;
 }
@@ -559,8 +445,8 @@ UGRAPHbuildCircuit( int V) {
     for (int i = 0; i < V; ++i) vv[i] = i;
     randPermutation( vv, V);
     for (int i = 0; i < V-1; ++i)
-        UGRAPHinsertEdge( G, vv[i], vv[i+1]);
-    UGRAPHinsertEdge( G, vv[V-1], vv[0]);
+        UGRAPHinsertEdgeQuick( G, vv[i], vv[i+1]);
+    UGRAPHinsertEdgeQuick( G, vv[V-1], vv[0]);
     free( vv);
     return G;
 }
@@ -573,7 +459,7 @@ GRAPHbuildRootedTree( int V) {
     randPermutation( vv, V);
     for (int i = 0; i < V-1; ++i) {
         int j = randInteger( i+1, V-1);
-        GRAPHinsertArc( G, vv[j], vv[i]);
+        GRAPHinsertArcQuick( G, vv[j], vv[i]);
     }
     free( vv);
     return G;
@@ -660,42 +546,46 @@ GRAPHdfs( Graph G, int *pre, int *post, vertex *pa) {
 // Ciclos e dags
 ////////////////////////////////////////////////////////////////////////
 
-// Esta função privada auxiliar devolve true se encontra um ciclo ao
-// percorrer G a partir do vértice v e devolve false em caso contrário.
-// O código é inspirado no de GRAPHdfsR().
+// Esta função privada auxiliar é usada por GRAPHhasCycle(). Ela devolve
+// true se encontra um ciclo ao percorrer G a partir do vértice v e
+// devolve false em caso contrário. O código é inspirado no de
+// GRAPHdfsR().
 static bool
-cycleR( Graph G, vertex v, int *pre, int *post, vertex *pa) {
+dfsRcycle( Graph G, vertex v, int *pre, int *post, vertex *pa) {
     pre[v] = cnt++;
     for (link a = G->adj[v]; a != NULL; a = a->next) {
         vertex w = a->w;
         if (pre[w] == -1) {
-            if (cycleR( G, w, pre, post, pa)) return true;
-        } else {
-            if (post[w] == -1) return true;
-        }
+            if (dfsRcycle( G, w, pre, post, pa)) return true;
+        } else if (post[w] == -1) return true;
     }
     post[v] = cntt++;
     return false;
 }
 
 bool
-GRAPHisTopo( Graph G, int *post) {
+GRAPHhasCycle( Graph G, int *post) {
     int *pre = mallocc( G->V * sizeof (int));
     int *pa = mallocc( G->V * sizeof (vertex));
     cnt = cntt = 0;
     for (vertex v = 0; v < G->V; ++v)
         pre[v] = post[v] = -1;
-    bool cy = false;
+    bool c = false;
     for (vertex v = 0; v < G->V; ++v)
         if (pre[v] == -1) {
             pa[v] = v;
-            cy = cycleR( G, v, pre, post, pa);
-            if (cy) break; // temos um ciclo
-            // (o ciclo pode não passar por v)
+            c = dfsRcycle( G, v, pre, post, pa);
+            if (c) break; // temos um ciclo
+            // (não necessariamente passando por v)
         }
     free( pa);
     free( pre);
-    return cy;
+    return c;
+}
+
+bool
+GRAPHisTopological( Graph G, int *post) {
+      return !GRAPHhasCycle( G, post);
 }
 
 
@@ -764,7 +654,7 @@ DAGshortestPaths( Dag G, vertex *vv, vertex s, vertex *pa, int *dist) {
 
 
 
-// Busca em largura (= breadth-first search = BFS) e caminhos mínimos
+// Busca em largura (= breadth-first search = BFS)
 ////////////////////////////////////////////////////////////////////////
 
 // Função privada auxiliar que implementa o algoritmo de busca em
@@ -794,6 +684,11 @@ GRAPHbfs( Graph G, vertex s, int num[], vertex pa[]) {
     QUEUEfree( );
 }
 
+
+
+// Algoritmo de caminhos mínimos
+////////////////////////////////////////////////////////////////////////
+
 // Variante da função GRAPHbfs() de busca em largura. O código é
 // inspirado no programa 18.9 de Sedgewick.
 void
@@ -820,36 +715,7 @@ GRAPHshortestPaths( Graph G, vertex s, int dist[], vertex pa[]) {
 
 
 
-// Circuitos em grafos não-dirigidos
-////////////////////////////////////////////////////////////////////////
-
-// **NOVA**, implementada por @felipe-noronha
-// Função privada hasCircuit
-static bool
-hasCircuit( Graph G, int *pre, vertex *pa) {
-
-     // só um lembrete
-     printf("\n*falta implementar a função hasCircuit()*\n\n");
-     return true;
-}
-
-// Esta é uma função-invólucro (wrapper function). O serviço pesado é
-// executado pela função privada hasCircuit().
-bool
-UGRAPHhasCircuit( UGraph G) {
-    int *pre = mallocc( G->V * sizeof (int));
-    int *post =  mallocc( G->V * sizeof (int));
-    vertex *pa = mallocc( G->V * sizeof (vertex));
-    GRAPHdfs( G, pre, post, pa); // calcula pre[], post[] e pa[]
-    free( post);
-    bool circuit = hasCircuit( G, pre, pa);
-    free( pre); free( pa);
-    return circuit;
-}
-
-
-
-// Circuitos e florestas (não-radicadas, i.e., não-dirigidas)
+// Circuitos e florestas (não-radicadas)
 ////////////////////////////////////////////////////////////////////////
 
 
@@ -894,10 +760,8 @@ Graph
 GRAPHreverse( Graph G) {
     Graph GR = GRAPHinit( G->V);
     for (vertex v = 0; v < G->V; ++v)
-        for (link a = G->adj[v]; a != NULL; a = a->next) {
-            vertex w = a->w;
-            GRAPHinsertArc( GR, w, v);
-        }
+        for (link a = G->adj[v]; a != NULL; a = a->next)
+            GRAPHinsertArcQuick( GR, a->w, v);
     return GR;
 }
 

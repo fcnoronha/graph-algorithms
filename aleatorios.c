@@ -26,47 +26,29 @@
 #include <time.h>
 #include "GRAPHlists.h"
 
-// Protottipos de funções auxiliares
-void showInDegree( Graph G);
-void showOutDegree( Graph G);
+// Prototipos de funções auxiliares
+void showInDegree (Graph G);
+void showOutDegree (Graph G);
 
-int main (int na, char* arg[]) {
-
-    int V, A;
-
-    // Caso seja igual á 1, usa a função GRAPHrand1(). Caso seja 2, usa
-    // a função GRAPHrand2()
-    int randN = 2;
-
-    // Primeira validação da entrada
-    if (na < 2) {
-        printf( "\nUsage: %s V A\n\n", arg[0]);
-        exit( EXIT_FAILURE);
-    }
-
-    // Segunda validação da entrada
-    if (sscanf( arg[1], "%d", &V) != 1 || V < 0) {
-        printf( "\nV must be a non-negative integer\n\n");
-        exit( EXIT_FAILURE);
-    }
-    if (sscanf( arg[2], "%d", &A) != 1 || A < 0) {
-        printf( "\nA must be a non-negative integer\n\n");
-        exit( EXIT_FAILURE);
-    }
+// Função que executa a rotina principal. Recebe atraves do parametro
+// randN qual função ira usar para gerar o grafo.
+void run (int V, int A, int randN) {
 
     // Terceira validação da entrada. Necessaria pela suposição de
     // GRAPHrand1() que A <= V*(V-1)
     if (randN == 1 && A > V*(V-1)) {
-        printf( "\nA and V must hold A <= V*(V-1)\n\n");
+        printf( "\nERROR: A and V must hold A <= V*(V-1)\n");
         exit( EXIT_FAILURE);
     }
 
     // Quarta validação da entrada. Necessaria pela suposição de
     // GRAPHrand2() que V >= 2 e A <= V*(V-1).
     if (randN == 2 && (V < 2 || A > V*(V-1))) {
-        printf( "\nA and V must hold V >= 2 and A <= V*(V-1)\n\n");
+        printf( "\nERROR: A and V must hold V >= 2 and A <= V*(V-1)\n");
         exit( EXIT_FAILURE);
     }
+
+    printf("- UTILIZANDO A FUNÇÃO GRAPHrand%d()\n\n", randN);
 
     // Tempo antes da criação do grafo
     double start = (double) clock () / CLOCKS_PER_SEC;
@@ -93,14 +75,40 @@ int main (int na, char* arg[]) {
     showOutDegree( G);
     showInDegree( G);
 
-    // Imprimindo as listas de adjacência do grafo caso ele tenha menos
-    // que 30 vertices
+    // Imprimindo as listas de adjacência do grafo caso ele tenha
+    // menos que 30 vertices
     if (G->V < 30)
         GRAPHshow( G);
 
     // Limpeza final:
     printf( "\n");
     GRAPHdestroy( G);
+}
+
+int main (int na, char* arg[]) {
+
+    int V, A;
+
+    // Primeira validação da entrada
+    if (na < 2) {
+        printf( "\nERRO: Usage: %s V A\n\n", arg[0]);
+        exit( EXIT_FAILURE);
+    }
+
+    // Segunda validação da entrada
+    if (sscanf( arg[1], "%d", &V) != 1 || V < 0) {
+        printf( "\nERROR: V must be a non-negative integer\n\n");
+        exit( EXIT_FAILURE);
+    }
+    if (sscanf( arg[2], "%d", &A) != 1 || A < 0) {
+        printf( "\nERROR: A must be a non-negative integer\n\n");
+        exit( EXIT_FAILURE);
+    }
+
+    // Chamando as rotinas.
+    run( V, A, 1);
+    run( V, A, 2);
+
     return EXIT_SUCCESS;
 }
 
