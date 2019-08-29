@@ -1,13 +1,13 @@
 // MAC0328 (2019)
 // Muitas funções discutidas nas minhas notas de aula e nos exercícios
-// ainda não estão nesta biblioteca. Acrecente essas funções. Modifique
+// ainda não estão nesta biblioteca. Acrescente essas funções. Modifique
 // as funções que já estão na biblioteca, se achar necessário. Sugiro
 // marcar os trechos de código modificados/acrescentados com um
 // comentário do tipo "// novo". Preserve meu bom layout (veja
 // www.ime.usp.br/~pf/algoritmos/aulas/layout.html) e não use tabs.
 
 // Este arquivo: GRAPHlists.c (codificação UTF-8)
-// Data: 2019-08-04
+// Data: 2019-08-20
 // Autor: Paulo Feofiloff
 //
 // Esta é a implementação de uma biblioteca de manipulação de grafos
@@ -41,13 +41,13 @@
 
 Graph
 GRAPHinit( int V) {
-    Graph G = mallocc( sizeof *G);
-    G->V = V;
-    G->A = 0;
-    G->adj = mallocc( V * sizeof (link));
-    for (vertex v = 0; v < V; ++v)
-        G->adj[v] = NULL;
-    return G;
+   Graph G = mallocc( sizeof *G);
+   G->V = V;
+   G->A = 0;
+   G->adj = mallocc( V * sizeof (link));
+   for (vertex v = 0; v < V; ++v)
+      G->adj[v] = NULL;
+   return G;
 }
 
 // Função privada (= static) auxiliar usada para construir listas de
@@ -56,10 +56,10 @@ GRAPHinit( int V) {
 // a->next == next.
 static link
 NEWnode( vertex w, link next) {
-    link a = mallocc( sizeof (struct node));
-    a->w = w;
-    a->next = next;
-    return a;
+   link a = mallocc( sizeof (struct node));
+   a->w = w;
+   a->next = next;
+   return a;
 }
 
 // Função privada auxiliar usada para construir listas de adjacência.
@@ -67,131 +67,134 @@ NEWnode( vertex w, link next) {
 // arcos.
 static link
 NEWnode_C( vertex w, link next, int cst) {
-    link a = mallocc( sizeof (struct node));
-    a->w = w;
-    a->next = next;
-    a->cst = cst;
-    return a;
+   link a = mallocc( sizeof (struct node));
+   a->w = w;
+   a->next = next;
+   a->cst = cst;
+   return a;
 }
 
-// **NOVA**, implementada por @felipe-noronha
-// Função privada auxiliar. Retorna true se o grafo ja tem um arco v-w,
-// retorna false caso contrario. Ela assume que v e w são distintos e
-// que são menores que G->V.
-static bool
-GRAPHhasArc( Graph G, vertex v, vertex w) {
-    link adj = G->adj[v];
-    while (adj != NULL) {
-        if (adj->w == w) return true;
-        adj = adj->next;
-    }
-    return false;
-}
-
-// **NOVA**, implementada por @felipe-noronha
 void
 GRAPHinsertArc( Graph G, vertex v, vertex w) {
-    if (GRAPHhasArc( G, v, w)) return;
-    link a = NEWnode( w, G->adj[v]);
-    G->adj[v] = a;
-    G->A++;
+   for (link a = G->adj[v]; a != NULL; a = a->next)
+      if (a->w == w) return;
+   G->adj[v] = NEWnode( w, G->adj[v]);
+   G->A++;
 }
 
 void
 GRAPHinsertArcQuick( Graph G, vertex v, vertex w) {
-    G->adj[v] = NEWnode( w, G->adj[v]);
-    G->A++;
+   G->adj[v] = NEWnode( w, G->adj[v]);
+   G->A++;
 }
 
 void
 UGRAPHinsertEdge( UGraph G, vertex v, vertex w) {
-    GRAPHinsertArc( G, v, w);
-    GRAPHinsertArc( G, w, v);
+   GRAPHinsertArc( G, v, w);
+   GRAPHinsertArc( G, w, v);
 }
 
 void
 UGRAPHinsertEdgeQuick( UGraph G, vertex v, vertex w) {
-    GRAPHinsertArcQuick( G, v, w);
-    GRAPHinsertArcQuick( G, w, v);
+   GRAPHinsertArcQuick( G, v, w);
+   GRAPHinsertArcQuick( G, w, v);
 }
 
-// **NOVA**, implementada por @felipe-noronha
 void
 GRAPHremoveArc( Graph G, vertex v, vertex w) {
-    if (!GRAPHhasArc( G, v, w)) return;
-    link atual = G->adj[v], ant = NULL;
-    if (atual != NULL && atual->w == w) {
-        G->adj[v] = atual->next;
-        free( atual);
-        G->A--;
-        return;
-    }
-    while (atual != NULL && atual->w != w) {
-        ant = atual;
-        atual = atual->next;
-    }
-    if (atual == NULL) return;
-    ant->next = atual->next;
-    free( atual);
-    G->A--;
-    return;
+   link *aa = &(G->adj[v]); // A
+   while (*aa != NULL && (*aa)->w != w)
+      aa = &(*aa)->next; // B
+   if (*aa != NULL) {
+      link b = *aa;
+      *aa = b->next;
+      free( b);
+      G->A--;
+   }
+}
+// Observação A: &G->adj[v] significa &(G->adj[v])
+// Observação B: &(*aa)->next significa &((*aa)->next)
+//               e é diferente de *aa->next
+
+void
+GRAPHremoveArcVersaoPedestre( Graph G, vertex v, vertex w) {
+   link a = G->adj[v];
+   if (a != NULL && a->w == w) {
+      G->adj[v] = a->next;
+      free( a);
+      G->A--;
+   } else {
+      link b = G->adj[v];
+      while (b->next != NULL && b->next->w != w)
+         b = b->next;
+      if (b->next != NULL) {
+         a = b->next;
+         b->next = a->next;
+         free( a);
+         G->A--;
+      }
+   }
 }
 
 void
 UGRAPHremoveEdge( UGraph G, vertex v, vertex w) {
-    GRAPHremoveArc( G, v, w);
-    GRAPHremoveArc( G, w, v);
+   GRAPHremoveArc( G, v, w);
+   GRAPHremoveArc( G, w, v);
 }
 
-// **NOVA**, implementada por @felipe-noronha
-Graph
-GRAPHcopy( Graph G) {
-    Graph GG = GRAPHinit( G->V);
-    for (vertex v = 0; v < G->V; v++) {
-        link a = G->adj[v];
-        while (a != NULL) {
-            GRAPHinsertArc( GG, v, a->w);
-            a = a->next;
-        }
-    }
-    return GG;
-}
-
-// **NOVA**, implementada por @felipe-noronha
 void
 GRAPHshow( Graph G) {
-    printf("Listas de adjacência:\n");
-    for (vertex v = 0; v < G->V; ++v) {
-        printf("%d:", v);
-        for (link adj = G->adj[v]; adj != NULL; adj = adj->next)
-            printf(" %d", adj->w);
-        printf("\n");
-    }
+   for (vertex v = 0; v < G->V; ++v) {
+      printf( "%2d:", v);
+      for (link a = G->adj[v]; a != NULL; a = a->next)
+         printf( " %2d", a->w);
+      printf( "\n");
+   }
 }
 
 void
 GRAPHshowArcs( Graph G) {
-    for (vertex v = 0; v < G->V; ++v)
-        for (link a = G->adj[v]; a != NULL; a = a->next)
-            printf( "%d %d\n", v, a->w);
+   for (vertex v = 0; v < G->V; ++v)
+      for (link a = G->adj[v]; a != NULL; a = a->next)
+         printf( "%d %d\n", v, a->w);
 }
 
 // Função privada auxiliar usada por GRAPHdestroy(). Ela libera os nós
 // da lista encadeada lst.
 static void
 freelist( link lst) {
-    if (lst != NULL) {
-        freelist( lst->next);
-        free( lst);
-    }
+   if (lst != NULL) {
+      freelist( lst->next);
+      free( lst);
+   }
 }
 
 void
 GRAPHdestroy( Graph G) {
-    for (vertex v = 0; v < G->V; ++v)
-        freelist( G->adj[v]);
-    free( G->adj);
-    free( G);
+   for (vertex v = 0; v < G->V; ++v)
+      freelist( G->adj[v]);
+   free( G->adj);
+   free( G);
+}
+
+int
+GRAPHindeg( Graph G, vertex v) {
+   int *in = mallocc( G->V * sizeof (int));
+   for (vertex w = 0; w < G->V; ++w) in[w] = 0;
+   for (vertex u = 0; u < G->V; ++u)
+      for (link a = G->adj[u]; a != NULL; a = a->next)
+         in[a->w]++;
+   int inv = in[v];
+   free( in);
+   return inv;
+}
+
+int
+GRAPHoutdeg( Graph G, vertex v) {
+   int outdeg = 0;
+   for (link a = G->adj[v]; a != NULL; a = a->next)
+      outdeg++;
+   return outdeg;
 }
 
 // Função privada auxiliar usada por GRAPHinvertLists_R(). A função
@@ -199,86 +202,86 @@ GRAPHdestroy( Graph G) {
 // primeiro nó da da nova lista.
 static link
 invertR( link a) {
-    if (a == NULL) return NULL;
-    if (a->next == NULL) return a; // base da recursão
-    link b = a->next;
-    link aa = invertR( b);
-    b->next = a;
-    a->next = NULL;
-    return aa;
+   if (a == NULL) return NULL;
+   if (a->next == NULL) return a; // base da recursão
+   link b = a->next;
+   link aa = invertR( b);
+   b->next = a;
+   a->next = NULL;
+   return aa;
 }
 
 void
 GRAPHinvertLists_R( Graph G) {
-    for (vertex v = 0; v < G->V; ++v)
-        G->adj[v] = invertR( G->adj[v]);
+   for (vertex v = 0; v < G->V; ++v)
+      G->adj[v] = invertR( G->adj[v]);
 }
 
 void
 GRAPHinvertLists_I( Graph G) {
-    for (vertex v = 0; v < G->V; ++v) {
-        link a = NULL; // anterior
-        link b = G->adj[v]; // corrente
-        while (b != NULL) {
-            link c = b->next; // seguinte
-            b->next = a;
-            a = b;
-            b = c;
-        }
-        G->adj[v] = a;
-    }
+   for (vertex v = 0; v < G->V; ++v) {
+      link a = NULL; // anterior
+      link b = G->adj[v]; // corrente
+      while (b != NULL) {
+         link c = b->next; // seguinte
+         b->next = a;
+         a = b;
+         b = c;
+      }
+      G->adj[v] = a;
+   }
 }
 
 Graph
 GRAPHinputArcs( FILE *infile) {
-    int V, A;
-    fscanf( infile, "%d", &V);
-    fscanf( infile, "%d", &A);
-    Graph G = GRAPHinit( V);
-    for (int i = 0; i < A; ++i) {
-        vertex v, w;
-        fscanf( infile, "%d %d", &v, &w);
-        GRAPHinsertArc( G, v, w);
-    }
-    // infile must be closed by client
-    return G;
+   int V, A;
+   fscanf( infile, "%d", &V);
+   fscanf( infile, "%d", &A);
+   Graph G = GRAPHinit( V);
+   for (int i = 0; i < A; ++i) {
+      vertex v, w;
+      fscanf( infile, "%d %d", &v, &w);
+      GRAPHinsertArc( G, v, w);
+   }
+   // infile must be closed by client
+   return G;
 }
 
 // Usa fgets() and strtok().
 Graph
 GRAPHinputLists( FILE *infile) {
-    char line[LINE_MAX];
-    fgets( line, LINE_MAX, infile); // (A)
-    string token = strtok( line, " \n"); // token != NULL
-    int V = strtol( token, NULL, 10);
-    Graph G = GRAPHinit( V);
-    for (int i = 0; i < V; i++) {
-        fgets( line, LINE_MAX, infile); // (A)
-        token = strtok( line, " \n"); // token != NULL
-        vertex v = strtol( token, NULL, 10); // 0 <= v < V
-        while ((token = strtok( NULL, " \n")) != NULL) {
-            vertex w = strtol( token, NULL, 10); // 0 <= w < V
-            GRAPHinsertArc( G, v, w);
-        } // terminou processamento dos vizinhos de v
-    }
-    GRAPHinvertLists_I( G);
-    return G;
+   char line[LINE_MAX];
+   fgets( line, LINE_MAX, infile); // (A)
+   string token = strtok( line, " \n"); // token != NULL
+   int V = strtol( token, NULL, 10);
+   Graph G = GRAPHinit( V);
+   for (int i = 0; i < V; i++) {
+      fgets( line, LINE_MAX, infile); // (A)
+      token = strtok( line, " \n"); // token != NULL
+      vertex v = strtol( token, NULL, 10); // 0 <= v < V
+      while ((token = strtok( NULL, " \n")) != NULL) {
+         vertex w = strtol( token, NULL, 10); // 0 <= w < V
+         GRAPHinsertArc( G, v, w);
+      } // terminou processamento dos vizinhos de v
+   }
+   GRAPHinvertLists_I( G);
+   return G;
 }
 // Observação (A): line[] contém uma linha de infile;
-//     se n = strlen( line) então
-//     line[n] == '\0', n > 0 e line[n-1] != '\n'.
+//    se n = strlen( line) então
+//    line[n] == '\0', n > 0 e line[n-1] != '\n'.
 
 void
 UGRAPHedges( UGraph G, edge e[]) {
-    int i = 0;
-    for (vertex v = 0; v < G->V; ++v)
-        for (link a = G->adj[v]; a != NULL; a = a->next)
-            if (v < a->w) {
-                e[i].v = v;
-                e[i].w = a->w;
-                e[i].cst = a->cst;
-                ++i;
-            }
+   int i = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      for (link a = G->adj[v]; a != NULL; a = a->next)
+         if (v < a->w) {
+            e[i].v = v;
+            e[i].w = a->w;
+            e[i].cst = a->cst;
+            ++i;
+         }
 }
 
 
@@ -286,10 +289,50 @@ UGRAPHedges( UGraph G, edge e[]) {
 // Numerações e permutações de vértices
 ////////////////////////////////////////////////////////////////////////
 
+void
+perm2num( int V, vertex perm[], int num[]) {
+   for (int i = 0; i < V; ++i)
+      num[perm[i]] = i;
+}
+
+void
+injnum2perm( int V, int num[], vertex perm[]) {
+   for (vertex v = 0; v < V; ++v)
+      perm[num[v]] = v;
+}
+
 
 
 // Grafos topológicos
 ////////////////////////////////////////////////////////////////////////
+
+// Eliminação iterada de fontes.
+bool
+isTopo( Graph G, int topo[]) {
+   int *indeg = mallocc( G->V * sizeof (int));
+   for (vertex v = 0; v < G->V; ++v) indeg[v] = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      for (link a = G->adj[v]; a != NULL; a = a->next)
+         indeg[a->w] += 1;
+   vertex *fila = mallocc( G->V * sizeof (vertex));
+   int comeco = 0, fim = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      if (indeg[v] == 0)
+         fila[fim++] = v;
+   int k = 0;
+   while (comeco < fim) {
+      // fila[comeco..fim-1] de fontes virtuais
+      vertex v = fila[comeco++];
+      topo[v] = k++;
+      for (link a = G->adj[v]; a != NULL; a = a->next) {
+         indeg[a->w] -= 1; // remoção virtual do arco v-w
+         if (indeg[a->w] == 0)
+            fila[fim++] = a->w;
+      }
+   }
+   free( indeg); free( fila);
+   return k >= G->V;
+}
 
 
 
@@ -305,8 +348,8 @@ UGRAPHedges( UGraph G, edge e[]) {
 // aleatório no intervalo fechado 0..RAND_MAX.
 static vertex
 randV( Graph G) {
-    double r = rand() / (RAND_MAX + 1.0); // 0 <= r < 1
-    return r * G->V;
+   double r = rand() / (RAND_MAX + 1.0); // 0 <= r < 1
+   return r * G->V;
 }
 
 // Função privada auxiliar. Devolve um inteiro aleatório entre a e b
@@ -335,54 +378,50 @@ randReal( double a, double b) {
 // shuffle) dos elementos do vetor v[0..V-1].
 static void
 randPermutation( int v[], int V) {
-    for (int n = V-1; n > 0; --n) {
-        int r = randInteger( 0, n); // 0 <= r <= n
-        int t;
-        t = v[n], v[n] = v[r], v[r] = t;
+   for (int n = V-1; n > 0; --n) {
+      int r = randInteger( 0, n); // 0 <= r <= n
+      int t;
+      t = v[n], v[n] = v[r], v[r] = t;
   }
 }
 
 // Código inspirado no Programa 17.7 de Sedgewick.
 Graph
 GRAPHrand1( int V, int A) {
-    Graph G = GRAPHinit( V);
-    if (A > V*(V-1)) A = V*(V-1);
-    while (G->A < A) {
-        vertex v = randV( G);
-        vertex w = randV( G);
-        if (v != w)
-            GRAPHinsertArc( G, v, w);
-    }
-    return G;
+   Graph G = GRAPHinit( V);
+   while (G->A < A) {
+      vertex v = randV( G);
+      vertex w = randV( G);
+      if (v != w)
+         GRAPHinsertArc( G, v, w);
+   }
+   return G;
 }
 
 // Código inspirado no Programa 17.7 de Sedgewick.
 UGraph
 UGRAPHrand1( int V, int E) {
-    UGraph G = UGRAPHinit( V);
-    int A = 2*E;
-    if (A > V*(V-1)) A = V*(V-1);
-    while (G->A < A) {
-        vertex v = randV( G);
-        vertex w = randV( G);
-        if (v != w)
-            UGRAPHinsertEdge( G, v, w);
-    }
-    return G;
+   UGraph G = UGRAPHinit( V);
+   int A = 2*E;
+   while (G->A < A) {
+      vertex v = randV( G);
+      vertex w = randV( G);
+      if (v != w)
+         UGRAPHinsertEdge( G, v, w);
+   }
+   return G;
 }
 
 Graph
 GRAPHrand2( int V, int A) {
-    if (V < 2) V = 2;
-    if (A > V*(V-1)) A = V*(V-1);
-    double prob = (double) A / (V*(V-1));
-    Graph G = GRAPHinit( V);
-    for (vertex v = 0; v < V; ++v)
-        for (vertex w = 0; w < V; ++w)
-            if (v != w)
-                if (rand( ) < prob*(RAND_MAX+1.0))
-                    GRAPHinsertArc( G, v, w);
-    return G;
+   double prob = (double) A / (V*(V-1));
+   Graph G = GRAPHinit( V);
+   for (vertex v = 0; v < V; ++v)
+      for (vertex w = 0; w < V; ++w)
+         if (v != w)
+            if (rand( ) < prob*(RAND_MAX+1.0))
+               GRAPHinsertArc( G, v, w);
+   return G;
 }
 
 
@@ -392,77 +431,97 @@ GRAPHrand2( int V, int A) {
 
 Graph
 GRAPHbuildComplete( int V) {
-    Graph G;
-    G = GRAPHinit( V);
-    for (vertex v = 0; v < G->V; ++v)
-        for (vertex w = 0; w < G->V; ++w)
-            if (w != v)
-                GRAPHinsertArcQuick( G, v, w);
-    return G;
+   Graph G;
+   G = GRAPHinit( V);
+   for (vertex v = 0; v < G->V; ++v)
+      for (vertex w = 0; w < G->V; ++w)
+         if (w != v)
+            GRAPHinsertArcQuick( G, v, w);
+   return G;
 }
 
 Graph
 GRAPHbuildPath( int V) {
-    Graph G = GRAPHinit( V);
-    vertex *vv = mallocc( V * sizeof (vertex));
-    for (int i = 0; i < V; ++i) vv[i] = i;
-    randPermutation( vv, V);
-    for (int i = 0; i < V-1; ++i)
-        GRAPHinsertArcQuick( G, vv[i], vv[i+1]);
-    free( vv);
-    return G;
+   Graph G = GRAPHinit( V);
+   vertex *vv = mallocc( V * sizeof (vertex));
+   for (int i = 0; i < V; ++i) vv[i] = i;
+   randPermutation( vv, V);
+   for (int i = 0; i < V-1; ++i)
+      GRAPHinsertArcQuick( G, vv[i], vv[i+1]);
+   free( vv);
+   return G;
 }
 
 UGraph
 UGRAPHbuildPath( int V) {
-    UGraph G = UGRAPHinit( V);
-    vertex *vv = mallocc( V * sizeof (vertex));
-    for (int i = 0; i < V; ++i) vv[i] = i;
-    randPermutation( vv, V);
-    for (int i = 0; i < V-1; ++i)
-        UGRAPHinsertEdgeQuick( G, vv[i], vv[i+1]);
-    free( vv);
-    return G;
+   UGraph G = UGRAPHinit( V);
+   vertex *vv = mallocc( V * sizeof (vertex));
+   for (int i = 0; i < V; ++i) vv[i] = i;
+   randPermutation( vv, V);
+   for (int i = 0; i < V-1; ++i)
+      UGRAPHinsertEdgeQuick( G, vv[i], vv[i+1]);
+   free( vv);
+   return G;
 }
 
 Graph
 GRAPHbuildCycle( int V) {
-    Graph G = GRAPHinit( V);
-    vertex *vv = mallocc( V * sizeof (vertex));
-    for (int i = 0; i < V; ++i) vv[i] = i;
-    randPermutation( vv, V);
-    for (int i = 0; i < V-1; ++i)
-        GRAPHinsertArcQuick( G, vv[i], vv[i+1]);
-    GRAPHinsertArcQuick( G, vv[V-1], vv[0]);
-    free( vv);
-    return G;
+   Graph G = GRAPHinit( V);
+   vertex *vv = mallocc( V * sizeof (vertex));
+   for (int i = 0; i < V; ++i) vv[i] = i;
+   randPermutation( vv, V);
+   for (int i = 0; i < V-1; ++i)
+      GRAPHinsertArcQuick( G, vv[i], vv[i+1]);
+   GRAPHinsertArcQuick( G, vv[V-1], vv[0]);
+   free( vv);
+   return G;
 }
 
 UGraph
 UGRAPHbuildCircuit( int V) {
-    UGraph G = UGRAPHinit( V);
-    vertex *vv = mallocc( V * sizeof (vertex));
-    for (int i = 0; i < V; ++i) vv[i] = i;
-    randPermutation( vv, V);
-    for (int i = 0; i < V-1; ++i)
-        UGRAPHinsertEdgeQuick( G, vv[i], vv[i+1]);
-    UGRAPHinsertEdgeQuick( G, vv[V-1], vv[0]);
-    free( vv);
-    return G;
+   UGraph G = UGRAPHinit( V);
+   vertex *vv = mallocc( V * sizeof (vertex));
+   for (int i = 0; i < V; ++i) vv[i] = i;
+   randPermutation( vv, V);
+   for (int i = 0; i < V-1; ++i)
+      UGRAPHinsertEdgeQuick( G, vv[i], vv[i+1]);
+   UGRAPHinsertEdgeQuick( G, vv[V-1], vv[0]);
+   free( vv);
+   return G;
 }
 
 Graph
-GRAPHbuildRootedTree( int V) {
-    Graph G = GRAPHinit( V);
-    vertex *vv = mallocc( V * sizeof (vertex));
-    for (int i = 0; i < V; ++i) vv[i] = i;
-    randPermutation( vv, V);
-    for (int i = 0; i < V-1; ++i) {
-        int j = randInteger( i+1, V-1);
-        GRAPHinsertArcQuick( G, vv[j], vv[i]);
-    }
-    free( vv);
-    return G;
+GRAPHbuildGrid( int m, int n) {
+   int V = m * n;
+   Graph G = GRAPHinit( V);
+   vertex *vv = mallocc( V * sizeof (vertex));
+   for (int i = 0; i < V; ++i) vv[i] = i;
+   randPermutation( vv, V);
+   for (int i = 0; i < V-1; ++i) {
+      if ((i+1) % n == 0) continue;
+      GRAPHinsertArcQuick( G, vv[i], vv[i+1]);
+   }
+   for (int i = 0; i < V-n; ++i)
+      GRAPHinsertArcQuick( G, vv[i], vv[i+n]);
+   free( vv);
+   return G;
+}
+
+UGraph
+UGRAPHbuildGrid( int m, int n) {
+   int V = m * n;
+   UGraph G = UGRAPHinit( V);
+   vertex *vv = mallocc( V * sizeof (vertex));
+   for (int i = 0; i < V; ++i) vv[i] = i;
+   randPermutation( vv, V);
+   for (int i = 0; i < V-1; ++i) {
+      if ((i+1) % n == 0) continue;
+      UGRAPHinsertEdgeQuick( G, vv[i], vv[i+1]);
+   }
+   for (int i = 0; i < V-n; ++i)
+      UGRAPHinsertEdgeQuick( G, vv[i], vv[i+n]);
+   free( vv);
+   return G;
 }
 
 
@@ -480,21 +539,21 @@ GRAPHbuildRootedTree( int V) {
 // por vértices já visitados.
 static void
 reachR( Graph G, vertex v, bool *visited) {
-    visited[v] = true;
-    for (link a = G->adj[v]; a != NULL; a = a->next)
-        if (!visited[a->w])
-            reachR( G, a->w, visited);
+   visited[v] = true;
+   for (link a = G->adj[v]; a != NULL; a = a->next)
+      if (!visited[a->w])
+         reachR( G, a->w, visited);
 }
 
 bool
 GRAPHreach( Graph G, vertex s, vertex t) {
-    bool *visited = mallocc( G->V * sizeof (bool));
-    for (vertex v = 0; v < G->V; ++v)
-        visited[v] = false;
-    reachR( G, s, visited);
-    bool reachable = visited[t];
-    free( visited);
-    return reachable;
+   bool *visited = mallocc( G->V * sizeof (bool));
+   for (vertex v = 0; v < G->V; ++v)
+      visited[v] = false;
+   reachR( G, s, visited);
+   bool reachable = visited[t];
+   free( visited);
+   return reachable;
 }
 
 
@@ -517,75 +576,106 @@ static int cnt, cntt;
 // então pre[x] recebe o valor cnt + k.
 static void
 dfsR( Graph G, vertex v, int *pre, int *post, vertex *pa) {
-    pre[v] = cnt++;
-    for (link a = G->adj[v]; a != NULL; a = a->next)
-        if (pre[a->w] == -1) {
-            pa[a->w] = v;
-            dfsR( G, a->w, pre, post, pa);
-        }
-    post[v] = cntt++;
+   pre[v] = cnt++;
+   for (link a = G->adj[v]; a != NULL; a = a->next)
+      if (pre[a->w] == -1) {
+         pa[a->w] = v;
+         dfsR( G, a->w, pre, post, pa);
+      }
+   post[v] = cntt++;
 }
 
 // Código inspirado no programa 18.3 de Sedgewick.
 void
 GRAPHdfs( Graph G, int *pre, int *post, vertex *pa) {
-    cnt = cntt = 0;
-    for (vertex v = 0; v < G->V; ++v)
-        pre[v] = post[v] = -1; // A
-    for (vertex v = 0; v < G->V; ++v)
-        if (pre[v] == -1) {
-            pa[v] = v;
-            dfsR( G, v, pre, post, pa); // nova etapa
-        }
+   cnt = cntt = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      pre[v] = post[v] = -1; // A
+   for (vertex v = 0; v < G->V; ++v)
+      if (pre[v] == -1) {
+         pa[v] = v;
+         dfsR( G, v, pre, post, pa); // nova etapa
+      }
 }
 // A: Inicializei post[] apenas porque a classificação on-the-fly dos
 // arcos precisa disso.
 
 
 
+
 // Ciclos e dags
 ////////////////////////////////////////////////////////////////////////
 
-// Esta função privada auxiliar é usada por GRAPHhasCycle(). Ela devolve
-// true se encontra um ciclo ao percorrer G a partir do vértice v e
-// devolve false em caso contrário. O código é inspirado no de
+
+// Faz uma busca DFS completa e depois procura um arco de retorno.
+bool
+GRAPHhasCycle_v1( Graph G) {
+   int *pre = mallocc( G->V * sizeof (int));
+   int *post = mallocc( G->V * sizeof (int));
+   int *pa = mallocc( G->V * sizeof (vertex));
+   GRAPHdfs( G, pre, post, pa);
+   free( pa);
+   for (vertex v = 0; v < G->V; ++v) {
+      for (link a = G->adj[v]; a != NULL; a = a->next) {
+         vertex w = a->w;
+         if (post[v] < post[w]) { // v-w é de retorno
+            free( post);
+            free( pre);
+            return true;
+         }
+      }
+   }
+   // post[v] > post[w] para todo arco v-w
+   free( post);
+   free( pre);
+   return false;
+}
+
+// Esta função privada auxiliar é usada por GRAPHhasCycle_v2(). Ela
+// devolve true se encontra um ciclo ao percorrer G a partir do vértice
+// v e devolve false em caso contrário. O código é inspirado no de
 // GRAPHdfsR().
 static bool
 dfsRcycle( Graph G, vertex v, int *pre, int *post, vertex *pa) {
-    pre[v] = cnt++;
-    for (link a = G->adj[v]; a != NULL; a = a->next) {
-        vertex w = a->w;
-        if (pre[w] == -1) {
-            if (dfsRcycle( G, w, pre, post, pa)) return true;
-        } else if (post[w] == -1) return true;
-    }
-    post[v] = cntt++;
-    return false;
+   pre[v] = cnt++;
+   for (link a = G->adj[v]; a != NULL; a = a->next) {
+      vertex w = a->w;
+      if (pre[w] == -1) {
+         if (dfsRcycle( G, w, pre, post, pa)) return true;
+      } else {
+         if (post[w] == -1) return true;
+      }
+   }
+   post[v] = cntt++;
+   return false;
+}
+
+// Interrompe a busca DFS logo que encontra um arco de retorno.
+bool
+GRAPHhasCycle_v2( Graph G) {
+   int *pre = mallocc( G->V * sizeof (int));
+   int *post = mallocc( G->V * sizeof (int));
+   int *pa = mallocc( G->V * sizeof (vertex));
+   cnt = cntt = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      pre[v] = post[v] = -1;
+   bool c = false;
+   for (vertex v = 0; v < G->V; ++v)
+      if (pre[v] == -1) {
+         pa[v] = v;
+         c = dfsRcycle( G, v, pre, post, pa);
+         if (c) break; // temos um ciclo
+         // (não necessariamente passando por v)
+      }
+   free( pa);
+   free( post);
+   free( pre);
+   return c;
 }
 
 bool
-GRAPHhasCycle( Graph G, int *post) {
-    int *pre = mallocc( G->V * sizeof (int));
-    int *pa = mallocc( G->V * sizeof (vertex));
-    cnt = cntt = 0;
-    for (vertex v = 0; v < G->V; ++v)
-        pre[v] = post[v] = -1;
-    bool c = false;
-    for (vertex v = 0; v < G->V; ++v)
-        if (pre[v] == -1) {
-            pa[v] = v;
-            c = dfsRcycle( G, v, pre, post, pa);
-            if (c) break; // temos um ciclo
-            // (não necessariamente passando por v)
-        }
-    free( pa);
-    free( pre);
-    return c;
-}
-
-bool
-GRAPHisTopological( Graph G, int *post) {
-      return !GRAPHhasCycle( G, post);
+GRAPHisDag( Graph G) {
+   return !GRAPHhasCycle( G);
 }
 
 
@@ -598,10 +688,10 @@ GRAPHisTopological( Graph G, int *post) {
 // contém v. O código é uma adaptação de dfsR().
 static void
 dfsRcc( UGraph G, int cc[], vertex v, int id) {
-    cc[v] = id;
-    for (link a = G->adj[v]; a != NULL; a = a->next)
-        if (cc[a->w] == -1)
-            dfsRcc( G, cc, a->w, id);
+   cc[v] = id;
+   for (link a = G->adj[v]; a != NULL; a = a->next)
+      if (cc[a->w] == -1)
+         dfsRcc( G, cc, a->w, id);
 }
 
 // O código da função é uma adaptação da busca em profundidade
@@ -609,22 +699,22 @@ dfsRcc( UGraph G, int cc[], vertex v, int id) {
 // Sedgewick.
 int
 UGRAPHcc( UGraph G, int cc[]) {
-    int id = 0;
-    for (vertex v = 0; v < G->V; ++v)
-        cc[v] = -1;
-    for (vertex v = 0; v < G->V; ++v)
-        if (cc[v] == -1)
-            dfsRcc( G, cc, v, id++);
-    return id;
+   int id = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      cc[v] = -1;
+   for (vertex v = 0; v < G->V; ++v)
+      if (cc[v] == -1)
+         dfsRcc( G, cc, v, id++);
+   return id;
 }
 
 bool
 UGRAPHisConnected( UGraph G) {
-    int *cc = mallocc( G->V * sizeof (int));
-    int numcc = UGRAPHcc( G, cc);
-    free( cc);
-    if (numcc > 1) return false;
-    return true;
+   int *cc = mallocc( G->V * sizeof (int));
+   int numcc = UGRAPHcc( G, cc);
+   free( cc);
+   if (numcc > 1) return false;
+   return true;
 }
 
 
@@ -635,21 +725,21 @@ UGRAPHisConnected( UGraph G) {
 // O código foi inspirado no programa 21.6 de Sedgewick.
 void
 DAGshortestPaths( Dag G, vertex *vv, vertex s, vertex *pa, int *dist) {
-    const int INFINITY = G->V;
-    for (vertex v = 0; v < G->V; ++v)
-        pa[v] = -1, dist[v] = INFINITY;
-    pa[s] = s, dist[s] = 0;
+   const int INFINITY = G->V;
+   for (vertex v = 0; v < G->V; ++v)
+      pa[v] = -1, dist[v] = INFINITY;
+   pa[s] = s, dist[s] = 0;
 
-    for (int j = 0; j < G->V; ++j) {
-        vertex v = vv[j];
-        for (link a = G->adj[v]; a != NULL; a = a->next) {
-            vertex w = a->w;
-            if (dist[v] + 1 < dist[w]) {
-                dist[w] = dist[v] + 1; // relaxação de v-w
-                pa[w] = v;
-            }
-        }
-    }
+   for (int j = 0; j < G->V; ++j) {
+      vertex v = vv[j];
+      for (link a = G->adj[v]; a != NULL; a = a->next) {
+         vertex w = a->w;
+         if (dist[v] + 1 < dist[w]) {
+            dist[w] = dist[v] + 1; // relaxação de v-w
+            pa[w] = v;
+         }
+      }
+   }
 }
 
 
@@ -665,23 +755,23 @@ DAGshortestPaths( Dag G, vertex *vv, vertex s, vertex *pa, int *dist) {
 // pelo cliente. (Código inspirado no programa 18.9 de Sedgewick.)
 static void
 GRAPHbfs( Graph G, vertex s, int num[], vertex pa[]) {
-    for (vertex v = 0; v < G->V; ++v)
-        num[v] = -1;
-    int c = 0;
-    num[s] = c++;
-    pa[s] = s;
-    QUEUEinit( G->V);
-    QUEUEput( s);
-    while (!QUEUEempty( )) {
-        vertex v = QUEUEget( );
-        for (link a = G->adj[v]; a != NULL; a = a->next)
-            if (num[a->w] == -1) {
-                num[a->w] = c++;
-                pa[a->w] = v;
-                QUEUEput( a->w);
-            }
-    }
-    QUEUEfree( );
+   for (vertex v = 0; v < G->V; ++v)
+      num[v] = -1;
+   int c = 0;
+   num[s] = c++;
+   pa[s] = s;
+   QUEUEinit( G->V);
+   QUEUEput( s);
+   while (!QUEUEempty( )) {
+      vertex v = QUEUEget( );
+      for (link a = G->adj[v]; a != NULL; a = a->next)
+         if (num[a->w] == -1) {
+            num[a->w] = c++;
+            pa[a->w] = v;
+            QUEUEput( a->w);
+         }
+   }
+   QUEUEfree( );
 }
 
 
@@ -693,24 +783,24 @@ GRAPHbfs( Graph G, vertex s, int num[], vertex pa[]) {
 // inspirado no programa 18.9 de Sedgewick.
 void
 GRAPHshortestPaths( Graph G, vertex s, int dist[], vertex pa[]) {
-    const int INFINITY = G->V;
-    for (vertex v = 0; v < G->V; ++v)
-        dist[v] = INFINITY, pa[v] = -1;
-    dist[s] = 0, pa[s] = s;
-    QUEUEinit( G->V);
-    QUEUEput( s);
-    while (!QUEUEempty( )) {
-        vertex v = QUEUEget( );
-        for (link a = G->adj[v]; a != NULL; a = a->next) {
-            vertex w = a->w;
-            if (dist[w] == INFINITY) {
-                dist[w] = dist[v] + 1;
-                pa[w] = v;
-                QUEUEput( w);
-            }
-        }
-    }
-    QUEUEfree( );
+   const int INFINITY = G->V;
+   for (vertex v = 0; v < G->V; ++v)
+      dist[v] = INFINITY, pa[v] = -1;
+   dist[s] = 0, pa[s] = s;
+   QUEUEinit( G->V);
+   QUEUEput( s);
+   while (!QUEUEempty( )) {
+      vertex v = QUEUEget( );
+      for (link a = G->adj[v]; a != NULL; a = a->next) {
+         vertex w = a->w;
+         if (dist[w] == INFINITY) {
+            dist[w] = dist[v] + 1;
+            pa[w] = v;
+            QUEUEput( w);
+         }
+      }
+   }
+   QUEUEfree( );
 }
 
 
@@ -728,27 +818,27 @@ GRAPHshortestPaths( Graph G, vertex s, int dist[], vertex pa[]) {
 // sobrou.
 int
 UGRAPHebcNaive( UGraph G, int *ebc) {
-    Graph GG = GRAPHcopy( G);
-    int *pre = mallocc( GG->V * sizeof (int));
-    int *post =  mallocc( GG->V * sizeof (int));
-    vertex *pa = mallocc( GG->V * sizeof (vertex));
-    GRAPHdfs( GG, pre, post, pa); // preenche pre[], post[], pa[]
-    free( pre);
-    free( post);
-    for (vertex v = 0; v < GG->V; ++v) {
-        vertex u = pa[v];
-        if (u == v) continue;
-        GRAPHremoveArc( GG, v, u);
-        if (GRAPHreach( GG, v, u) == true)
-            GRAPHinsertArc( GG, v, u);
-        else
-            GRAPHremoveArc( GG, u, v);
-    }
-    // GG has no bridges
-    int k = UGRAPHcc( GG, ebc);
-    UGRAPHdestroy( GG);
-    free( pa);
-    return k;
+   Graph GG = G;
+   int *pre = mallocc( GG->V * sizeof (int));
+   int *post =  mallocc( GG->V * sizeof (int));
+   vertex *pa = mallocc( GG->V * sizeof (vertex));
+   GRAPHdfs( GG, pre, post, pa); // preenche pre[], post[], pa[]
+   free( pre);
+   free( post);
+   for (vertex v = 0; v < GG->V; ++v) {
+      vertex u = pa[v];
+      if (u == v) continue;
+      GRAPHremoveArc( GG, v, u);
+      if (GRAPHreach( GG, v, u) == true)
+         GRAPHinsertArc( GG, v, u);
+      else
+         GRAPHremoveArc( GG, u, v);
+   }
+   // GG has no bridges
+   int k = UGRAPHcc( GG, ebc);
+   UGRAPHdestroy( GG);
+   free( pa);
+   return k;
 }
 
 
@@ -758,11 +848,11 @@ UGRAPHebcNaive( UGraph G, int *ebc) {
 
 Graph
 GRAPHreverse( Graph G) {
-    Graph GR = GRAPHinit( G->V);
-    for (vertex v = 0; v < G->V; ++v)
-        for (link a = G->adj[v]; a != NULL; a = a->next)
-            GRAPHinsertArcQuick( GR, a->w, v);
-    return GR;
+   Graph GR = GRAPHinit( G->V);
+   for (vertex v = 0; v < G->V; ++v)
+      for (link a = G->adj[v]; a != NULL; a = a->next)
+         GRAPHinsertArcQuick( GR, a->w, v);
+   return GR;
 }
 
 
@@ -787,6 +877,11 @@ GRAPHreverse( Graph G) {
 
 
 
+// Emparelhamentos (= matchings)
+////////////////////////////////////////////////////////////////////////
+
+
+
 // Emparelhamentos em grafos bipartidos (= bipartite matching)
 ////////////////////////////////////////////////////////////////////////
 
@@ -796,112 +891,85 @@ GRAPHreverse( Graph G) {
 // (= MST = minimal spanning tree)
 ////////////////////////////////////////////////////////////////////////
 
-// Versão ingênua. Tempo V*E.
-int
-UGRAPHmstP0( UGraph G, vertex pa[]) {
-    const int INFINITY = INT_MAX;
-    for (vertex w = 0; w < G->V; ++w) pa[w] = -1;
-    pa[0] = 0;
-    int mstcost = 0;
-    while (true) {
-        int min = INFINITY;
-        vertex x = 0, y = 0;
-        for (vertex v = 0; v < G->V; ++v) {
-            if (pa[v] == -1) continue;
-            for (link a = G->adj[v]; a != NULL; a = a->next) {
-                if (pa[a->w] != -1) continue;
-                if (a->cst < min) {
-                    min = a->cst;
-                    x = v, y = a->w;
-                }
-            }
-        }
-        if (min == INFINITY) break;
-        pa[y] = x;
-        mstcost += min;
-    }
-    return mstcost;
-}
-
 // O código é uma versão melhorada do Programa 20.3 de Sedgewick.
 int
 UGRAPHmstP1( UGraph G, vertex pa[]) {
-    const int INFINITY = INT_MAX;
-    bool *tree = mallocc( G->V * sizeof (bool));
-    vertex *preco = mallocc( G->V * sizeof (int)); // price
-    // inicialização:
-    for (vertex v = 0; v < G->V; ++v)
-        pa[v] = -1, tree[v] = false, preco[v] = INFINITY;
-    pa[0] = 0, tree[0] = true;
-    for (link a = G->adj[0]; a != NULL; a = a->next) {
-        pa[a->w] = 0, preco[a->w] = a->cst;
-    }
-    int mstcost = 0;
-    while (true) {
-        int min = INFINITY;
-        vertex y = 0; // y is initialized just to make compiler happy
-        for (vertex w = 0; w < G->V; ++w) {
-            if (tree[w]) continue;
-            if (preco[w] < min)
-                min = preco[w], y = w;
-        }
-        if (min == INFINITY) break;
-        // aresta pa[y]-y é a mais barata da franja
-        tree[y] = true;
-        mstcost += preco[y];
-        // atualização de preco[]:
-        for (link a = G->adj[y]; a != NULL; a = a->next) {
-            vertex w = a->w;
-            if (tree[w]) continue;
-            int cst = a->cst;
-            if (cst < preco[w]) {
-                preco[w] = cst;
-                pa[w] = y;
-            }
-        }
-    }
-    free( tree); free( preco);
-    return mstcost;
+   const int INFINITY = INT_MAX;
+   bool *tree = mallocc( G->V * sizeof (bool));
+   vertex *preco = mallocc( G->V * sizeof (int)); // price
+   // inicialização:
+   for (vertex v = 0; v < G->V; ++v)
+      pa[v] = -1, tree[v] = false, preco[v] = INFINITY;
+   pa[0] = 0, tree[0] = true;
+   for (link a = G->adj[0]; a != NULL; a = a->next) {
+      pa[a->w] = 0, preco[a->w] = a->cst;
+   }
+   int mstcost = 0;
+   while (true) {
+      int min = INFINITY;
+      vertex y = 0; // y is initialized just to make compiler happy
+      for (vertex w = 0; w < G->V; ++w) {
+         if (tree[w]) continue;
+         if (preco[w] < min)
+            min = preco[w], y = w;
+      }
+      if (min == INFINITY) break;
+      // aresta pa[y]-y é a mais barata da franja
+      tree[y] = true;
+      mstcost += preco[y];
+      // atualização de preco[]:
+      for (link a = G->adj[y]; a != NULL; a = a->next) {
+         vertex w = a->w;
+         if (tree[w]) continue;
+         int cst = a->cst;
+         if (cst < preco[w]) {
+            preco[w] = cst;
+            pa[w] = y;
+         }
+      }
+   }
+   free( tree); free( preco);
+   return mstcost;
 }
 
 // Código inspirado no Programa 21.1 de Sedgewick.
 int
 UGRAPHmstP2( UGraph G, vertex pa[]) {
-    const int INFINITY = INT_MAX;
-    bool *tree = mallocc( G->V * sizeof (bool));
-    vertex *preco = mallocc( G->V * sizeof (int)); // price
-    // inicialização:
-    for (vertex v = 1; v < G->V; ++v)
-        pa[v] = -1, tree[v] = false, preco[v] = INFINITY;
-    pa[0] = 0, tree[0] = true;
-    for (link a = G->adj[0]; a != NULL; a = a->next) {
-        pa[a->w] = 0;
-        preco[a->w] = a->cst;
-    }
-    PQinit( G->V);
-    for (vertex v = 1; v < G->V; ++v)
-        PQinsert( v, preco);
+   const int INFINITY = INT_MAX;
+   bool *tree = mallocc( G->V * sizeof (bool));
+   vertex *preco = mallocc( G->V * sizeof (int)); // price
+   // inicialização:
+   for (vertex v = 1; v < G->V; ++v)
+      pa[v] = -1, tree[v] = false, preco[v] = INFINITY;
+   pa[0] = 0, tree[0] = true;
+   for (link a = G->adj[0]; a != NULL; a = a->next) {
+      pa[a->w] = 0;
+      preco[a->w] = a->cst;
+   }
+   PQinit( G->V);
+   for (vertex v = 1; v < G->V; ++v)
+      PQinsert( v, preco);
 
-    int mstcost = 0;
-    while (!PQempty( )) {
-        vertex y = PQdelmin( preco);
-        if (preco[y] == INFINITY) break; // supérfluo se G conexo
-        tree[y] = true;
-        mstcost += preco[y];
-        // atualização de preco[]:
-        for (link a = G->adj[y]; a != NULL; a = a->next) {
-            vertex w = a->w;
-            if (tree[w]) continue;
-            int cst = a->cst;
-            if (cst < preco[w]) {
-                preco[w] = cst;
-                PQdec( w, preco);
-                pa[w] = y;
-            }
-        }
-    }
-    PQfree( ); free( tree); free( preco);
-    return mstcost;
+   int mstcost = 0;
+   while (!PQempty( )) {
+      vertex y = PQdelmin( preco);
+      if (preco[y] == INFINITY) break; // supérfluo se G conexo
+      tree[y] = true;
+      mstcost += preco[y];
+      // atualização de preco[]:
+      for (link a = G->adj[y]; a != NULL; a = a->next) {
+         vertex w = a->w;
+         if (tree[w]) continue;
+         int cst = a->cst;
+         if (cst < preco[w]) {
+            preco[w] = cst;
+            PQdec( w, preco);
+            pa[w] = y;
+         }
+      }
+   }
+   PQfree( ); free( tree); free( preco);
+   return mstcost;
 }
 
 
@@ -909,44 +977,6 @@ UGRAPHmstP2( UGraph G, vertex pa[]) {
 // Algoritmo de Kruskal para árvores geradoras de custo mínimo
 // (= MST = minimal spanning tree)
 ////////////////////////////////////////////////////////////////////////
-
-// Versão ingênua, quadrática. Consome V*(E+V) unidades de tempo.
-int
-UGRAPHmstK0( UGraph G, edge mst[]) {
-    // o tipo edge foi definido em GRAPHlist.h:
-    // typedef struct {vertex v, w;} edge;
-    vertex *chefe = mallocc( G->V * sizeof (vertex));
-    for (vertex v = 0; v < G->V; ++v) chefe[v] = v;
-    const int INFINITY = INT_MAX;
-    int mstcost = 0;
-    int k = 0;
-    while (true) {
-        int min = INFINITY;
-        vertex x = 0, y = 0; // inicialização acalma o compilador
-        for (vertex v = 0; v < G->V; ++v) {
-            for (link a = G->adj[v]; a != NULL; a = a->next) {
-                vertex w = a->w;
-                int c = a->cst;
-                // v-w é externa se chefe[v] != chefe[w]
-                if (v < w && chefe[v] != chefe[w] && c < min)
-                    x = v, y = w, min = c;
-            }
-        }
-        if (min == INFINITY) break;
-        // x-y é aresta externa de custo mínimo
-        mstcost += min;
-        mst[k].v = x, mst[k].w = y;
-        ++k;
-        // as componentes de x e y precisam ser fundidas
-        // (x0 passará a ser o chefe da fusão)
-        vertex x0 = chefe[x], y0 = chefe[y];
-        for (vertex v = 0; v < G->V; ++v)
-            if (chefe[v] == y0) chefe[v] = x0;
-    }
-    // mst[0..V-2] é o conjunto de arestas da MST
-    free( chefe);
-    return mstcost;
-}
 
 // Esta função privada auxiliar compara o campo cst de dois objetos *aa
 // e *bb do tipo edge. A função é usada como 3-o argumento da função
@@ -967,29 +997,29 @@ comp_edge( const void *aa, const void *bb) {
 // Sedgewick.)
 int
 UGRAPHmstK1( UGraph G, edge mst[]) {
-    // o tipo edge foi definido em GRAPHlist.h:
-    // typedef struct {vertex v, w;} edge;
-    int V = G->V;
-    edge *e = mallocc( (V*(V-1)/2) * sizeof (edge));
-    UGRAPHedges( G, e);
-    int E = G->A/2;
-    // quickSort( e, 0, E-1);
-    qsort( e, E, sizeof (edge), comp_edge);
-    UFinit( V);
-    int mstcost = 0;
-    int k = 0;
-    for (int i = 0; k < V-1; ++i) {
-        vertex v0 = UFfind( e[i].v);
-        vertex w0 = UFfind( e[i].w);
-        if (v0 != w0) {
-            UFunion( v0, w0);
-            mst[k++] = e[i];
-            mstcost += e[i].cst;
-        }
-    }
-    // mst[0..V-2] é o conjunto de arestas de uma MST
-    UFfree( ); free( e);
-    return mstcost;
+   // o tipo edge foi definido em GRAPHlist.h:
+   // typedef struct {vertex v, w;} edge;
+   int V = G->V;
+   edge *e = mallocc( (V*(V-1)/2) * sizeof (edge));
+   UGRAPHedges( G, e);
+   int E = G->A/2;
+   // quickSort( e, 0, E-1);
+   qsort( e, E, sizeof (edge), comp_edge);
+   UFinit( V);
+   int mstcost = 0;
+   int k = 0;
+   for (int i = 0; k < V-1; ++i) {
+      vertex v0 = UFfind( e[i].v);
+      vertex w0 = UFfind( e[i].w);
+      if (v0 != w0) {
+         UFunion( v0, w0);
+         mst[k++] = e[i];
+         mstcost += e[i].cst;
+      }
+   }
+   // mst[0..V-2] é o conjunto de arestas de uma MST
+   UFfree( ); free( e);
+   return mstcost;
 }
 
 
@@ -1005,20 +1035,20 @@ UGRAPHmstK1( UGraph G, edge mst[]) {
 // O código foi inspirado no programa 21.6 de Sedgewick.
 void
 DAGspt( Dag G, vertex *vv, vertex s, vertex *pa, int *dist) {
-    const int INFINITY = INT_MAX;
-    for (vertex v = 0; v < G->V; ++v)
-        pa[v] = -1, dist[v] = INFINITY;
-    pa[s] = s, dist[s] = 0;
-    for (int j = 0; j < G->V; ++j) {
-        vertex v = vv[j];
-        if (dist[v] == INFINITY) continue;
-        for (link a = G->adj[v]; a != NULL; a = a->next) {
-            if (!(dist[v] + a->cst >= dist[a->w])) {
-                dist[a->w] = dist[v] + a->cst;
-                pa[a->w] = v;
-            }
-        }
-    }
+   const int INFINITY = INT_MAX;
+   for (vertex v = 0; v < G->V; ++v)
+      pa[v] = -1, dist[v] = INFINITY;
+   pa[s] = s, dist[s] = 0;
+   for (int j = 0; j < G->V; ++j) {
+      vertex v = vv[j];
+      if (dist[v] == INFINITY) continue;
+      for (link a = G->adj[v]; a != NULL; a = a->next) {
+         if (!(dist[v] + a->cst >= dist[a->w])) {
+            dist[a->w] = dist[v] + a->cst;
+            pa[a->w] = v;
+         }
+      }
+   }
 }
 
 
@@ -1026,116 +1056,82 @@ DAGspt( Dag G, vertex *vv, vertex s, vertex *pa, int *dist) {
 // Algoritmo de Dijkstra para caminhos mínimos sob custos positivos
 ////////////////////////////////////////////////////////////////////////
 
-// Implementação ingênua. Consome V*A unidades de tempo.
-void
-GRAPHsptD0( Graph G, vertex s, vertex *pa, int *dist) {
-    const int INFINITY = INT_MAX;
-    // estamos supondo que INT_MAX é maior que
-    // o custo de qualquer caminho simples com origem s
-    for (vertex v = 0; v < G->V; ++v)
-        pa[v] = -1, dist[v] = INFINITY;
-    pa[s] = s, dist[s] = 0;
-
-    while (true) {
-        int min = INFINITY;
-        vertex x = 0, y = 0;
-        // x and y initialized just to make compiler happy
-        for (vertex v = 0; v < G->V; ++v) {
-            if (pa[v] == -1) continue;
-            for (link a = G->adj[v]; a != NULL; a = a->next) {
-                if (pa[a->w] != -1) continue;
-                if (dist[v] + a->cst < min) {
-                    min = dist[v] + a->cst;
-                    x = v, y = a->w;
-                }
-            }
-        }
-        if (min == INFINITY) break;
-        pa[y] = x, dist[y] = min;
-    }
-}
-
 // Código inspirado no Programa 20.3 de Sedgewick. Não usa fila
 // priorizada.
 void
 GRAPHsptD1( Graph G, vertex s, vertex *pa, int *dist) {
-    const int INFINITY = INT_MAX;
-    bool *tree = mallocc( G->V * sizeof (bool));
-    // inicialização:
-    for (vertex v = 0; v < G->V; ++v)
-        pa[v] = -1, tree[v] = false, dist[v] = INFINITY;
-    pa[s] = s, tree[s] = true, dist[s] = 0;
-    for (link a = G->adj[s]; a != NULL; a = a->next)
-        pa[a->w] = s, dist[a->w] = a->cst;
-    while (true) {
-        // cálculo de y:
-        int min = INFINITY;
-        vertex y = 0; // y initialized to make compiler happy
-        for (vertex z = 0; z < G->V; ++z) {
-            if (tree[z]) continue;
-            if (dist[z] < min) // dist[z] é o preço de z
-                min = dist[z], y = z;
-        }
-        if (min == INFINITY) break;
-        tree[y] = true;
-        // atualização de dist[]:
-        for (link a = G->adj[y]; a != NULL; a = a->next) {
-            vertex w = a->w;
-            if (tree[w]) continue;
-            int cst = a->cst;
-            if (dist[y] + cst < dist[w]) {
-                dist[w] = dist[y] + cst; // relaxação de y-w
-                pa[w] = y;
-            }
-        }
-    }
-    free( tree);
+   const int INFINITY = INT_MAX;
+   bool *tree = mallocc( G->V * sizeof (bool));
+   // inicialização:
+   for (vertex v = 0; v < G->V; ++v)
+      pa[v] = -1, tree[v] = false, dist[v] = INFINITY;
+   pa[s] = s, tree[s] = true, dist[s] = 0;
+   for (link a = G->adj[s]; a != NULL; a = a->next)
+      pa[a->w] = s, dist[a->w] = a->cst;
+   while (true) {
+      // cálculo de y:
+      int min = INFINITY;
+      vertex y = 0; // y initialized to make compiler happy
+      for (vertex z = 0; z < G->V; ++z) {
+         if (tree[z]) continue;
+         if (dist[z] < min) // dist[z] é o preço de z
+            min = dist[z], y = z;
+      }
+      if (min == INFINITY) break;
+      tree[y] = true;
+      // atualização de dist[]:
+      for (link a = G->adj[y]; a != NULL; a = a->next) {
+         vertex w = a->w;
+         if (tree[w]) continue;
+         int cst = a->cst;
+         if (dist[y] + cst < dist[w]) {
+            dist[w] = dist[y] + cst; // relaxação de y-w
+            pa[w] = y;
+         }
+      }
+   }
+   free( tree);
 }
 
 // Código inspirado no Programa 21.1 de Sedgewick. Usa uma fila
 // priorizada.
 void
 GRAPHsptD2( Graph G, vertex s, vertex *pa, int *dist) {
-    const int INFINITY = INT_MAX;
-    bool *tree = mallocc( G->V * sizeof (bool));
-    // inicialização:
-    for (vertex v = 0; v < G->V; ++v)
-        pa[v] = -1, tree[v] = false, dist[v] = INFINITY;
-    pa[s] = s, tree[s] = true, dist[s] = 0;
-    for (link a = G->adj[s]; a != NULL; a = a->next) {
-        pa[a->w] = s;
-        dist[a->w] = a->cst; // preço de a->w
-    }
-    PQinit( G->V);
-    for (vertex v = 0; v < G->V; ++v)
-        if (v != s) PQinsert( v, dist);
-    while (!PQempty( )) {
-        vertex y = PQdelmin( dist);
-        if (dist[y] == INFINITY) break;
-        tree[y] = true;
-        // atualização de dist[]:
-        for (link a = G->adj[y]; a != NULL; a = a->next) {
-            vertex w = a->w;
-            if (tree[w]) continue; // redundant
-            int cst = a->cst;
-            if (dist[y] + cst < dist[w]) {
-                dist[w] = dist[y] + cst; // relaxa y-w
-                PQdec( w, dist);
-                pa[w] = y;
-            }
-        }
-    }
-    PQfree( ); free( tree);
+   const int INFINITY = INT_MAX;
+   bool *tree = mallocc( G->V * sizeof (bool));
+   // inicialização:
+   for (vertex v = 0; v < G->V; ++v)
+      pa[v] = -1, tree[v] = false, dist[v] = INFINITY;
+   pa[s] = s, tree[s] = true, dist[s] = 0;
+   for (link a = G->adj[s]; a != NULL; a = a->next) {
+      pa[a->w] = s;
+      dist[a->w] = a->cst; // preço de a->w
+   }
+   PQinit( G->V);
+   for (vertex v = 0; v < G->V; ++v)
+      if (v != s) PQinsert( v, dist);
+   while (!PQempty( )) {
+      vertex y = PQdelmin( dist);
+      if (dist[y] == INFINITY) break;
+      tree[y] = true;
+      // atualização de dist[]:
+      for (link a = G->adj[y]; a != NULL; a = a->next) {
+         vertex w = a->w;
+         if (tree[w]) continue; // redundant
+         int cst = a->cst;
+         if (dist[y] + cst < dist[w]) {
+            dist[w] = dist[y] + cst; // relaxa y-w
+            PQdec( w, dist);
+            pa[w] = y;
+         }
+      }
+   }
+   PQfree( ); free( tree);
 }
 
 
 
 // Caminhos de comprimento máximo e de custo máximo
-////////////////////////////////////////////////////////////////////////
-
-
-
-// Emparelhamentos (= matchings)
 ////////////////////////////////////////////////////////////////////////
 
 

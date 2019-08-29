@@ -85,12 +85,12 @@ void run (int V, int A, int randN) {
     GRAPHdestroy( G);
 }
 
-int main (int na, char* arg[]) {
+int main (int argc, char* arg[]) {
 
     int V, A;
 
     // Primeira validação da entrada
-    if (na < 2) {
+    if (argc < 2) {
         printf( "\nERRO: Usage: %s V A\n\n", arg[0]);
         exit( EXIT_FAILURE);
     }
@@ -132,8 +132,17 @@ showOutDegree( Graph G) {
     }
 
     printf("Numero de vertices com grau de saida igual á [g]:\n");
-    for (int g = 0; g <= grauMaximo; g++)
+    int g = 0;
+    while (g < 4 && g < grauMaximo) {
         printf("[%d]: %d\n", g, grauSaida[g]);
+        g++;
+    }
+    if (grauMaximo-3 > g)
+        g = grauMaximo-3;
+    while (g <= grauMaximo) {
+        printf("[%d]: %d\n", g, grauSaida[g]);
+        g++;
+    }
     printf("\n");
     free(grauSaida);
 }
@@ -162,8 +171,17 @@ showInDegree( Graph G) {
     }
 
     printf( "Numero de vertices com grau de entrada igual á [g]:\n");
-    for (int g = 0; g <= grauMaximo; g++)
-        printf( "[%d]: %d\n", g, grauEntrada[g]);
+    int g = 0;
+    while (g < 4 && g < grauMaximo) {
+        printf("[%d]: %d\n", g, grauEntrada[g]);
+        g++;
+    }
+    if (grauMaximo-3 > g)
+        g = grauMaximo-3;
+    while (g <= grauMaximo) {
+        printf("[%d]: %d\n", g, grauEntrada[g]);
+        g++;
+    }
     printf( "\n");
     free( grauEntrada);
     free( grauEntradaUnitario);

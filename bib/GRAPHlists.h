@@ -1,13 +1,13 @@
 // MAC0328 (2019) 
 // Muitas funções discutidas nas minhas notas de aula e nos exercícios
-// ainda não estão nesta biblioteca. Acrecente essas funções. Modifique
+// ainda não estão nesta biblioteca. Acrescente essas funções. Modifique
 // as funções que já estão na biblioteca, se achar necessário. Sugiro
 // marcar os trechos de código modificados/acrescentados com um
 // comentário do tipo "// novo". Preserve meu bom layout (veja
 // www.ime.usp.br/~pf/algoritmos/aulas/layout.html) e não use tabs. 
 
 // Este arquivo: GRAPHlists.h (codificação UTF-8)
-// Data: 2019-08-04
+// Data: 2019-08-20
 // Autor: Paulo Feofiloff
 //
 // Esta é a interface de uma biblioteca de manipulação de grafos
@@ -166,6 +166,10 @@ UGRAPHinsertEdgeQuick_C( UGraph G, vertex v, vertex w, int cst);
 void 
 GRAPHremoveArc( Graph G, vertex v, vertex w);
 
+// Idem, versão pedestre.
+void 
+GRAPHremoveArcVersaoPedestre( Graph G, vertex v, vertex w);
+
 // A função UGRAPHremoveEdge() remove aresta v-w do grafo não-dirigido
 // G. Se não existe aresta v-w, a função não faz nada.
 void 
@@ -185,6 +189,12 @@ void
 GRAPHshow_C( Graph G);
 
 #define UGRAPHshow_C GRAPHshow_C
+
+// Esta função imprime, na saída padrão, todos os arcos de G. Cada linha
+// da saída tem a forma v w, sendo v a ponta inicial e w a ponta final
+// de um arco.
+void 
+GRAPHshowArcs( Graph G);
 
 // Esta função devolve uma cópia do grafo G.
 Graph 
@@ -207,7 +217,8 @@ GRAPHdestroy( Graph G);
 bool 
 GRAPHisUndirected( Graph G);
 
-// Esta função devolve o grau de entrada do vértice v no grafo G.
+// Esta função devolve o grau de entrada do vértice v no grafo G. A 
+// é cara: consome tempo proporcional ao tamanho do grafo.
 int
 GRAPHindeg( Graph G, vertex v);
 
@@ -349,8 +360,6 @@ GRAPHinputLists(  FILE *infile);
 Graph 
 GRAPHinputLists_C(  FILE *infile);
 
-#define UGRAPHinputLists_C GRAPHinputLists_C
-
 // O tipo edge representa uma aresta. As pontas de uma aresta e são e.v
 // e e.w. (Isso é usado apenas na implementação do algoritmo de Kruskal
 // para árvore geradora de custo mínimo.)
@@ -359,7 +368,7 @@ typedef struct {vertex v, w; int cst;} edge;
 // Armazena as arestas do grafo não-dirigido G no vetor e[0..E-1], sendo
 // E = G->A/2.
 void 
-UGRAPHedges( UGraph G, edge e[]);
+UGRAPHedges( UGraph G, edge *e);
 
 
 
@@ -370,21 +379,21 @@ UGRAPHedges( UGraph G, edge e[]);
 // correspondente numeração num[0..V-1] dos vértices. (Teremos
 // num[perm[i]] == i.)
 void
-perm2num( int V, vertex perm[], int num[]);
+perm2num( int V, vertex *perm, int *num);
 
 // Converte a numeração injetiva num[0..V-1] dos vértices de um grafo na
 // correspondente permutação perm[0..V-1] dos vértices. O vetor num[]
 // deve ser uma bijeção entre o conjunto dos vértices e o conjunto de
 // números 0..V-1.
 void
-injnum2perm( int V, int num[], vertex perm[]);
+injnum2perm( int V, int *num, vertex *perm);
 
 // Converte a numeração num[0..V-1] dos vértices de um grafo na
 // correspondente permutação perm[0..V-1] dos vértices. A numeração
 // num[] pode não ser injetiva; basta que atribua um número inteiro não
 // negativo a cada vértice.
 void
-num2perm( int V, int num[], vertex perm[]);
+num2perm( int V, int *num, vertex *perm);
 
 
 
@@ -398,23 +407,30 @@ num2perm( int V, int num[], vertex perm[]);
 // permutação vv[] dos vértices é anti-topológica se i > j para cada
 // arco vv[i]-vv[j] do grafo.
  
+// Decide se o grafo G é topológico. Em caso afirmativo, armazena no
+// vetor topo[0..V-1] uma numeração topológica dos vértices de G. 
+// (A função implementa o algoritmo de eliminação recursiva de fontes.)
+// (O prefixo "GRAPH" usual foi omitido porque a função GRAPHisDag()
+// é mais interessante e tão eficiente quanto esta.)
+bool 
+isTopo( Graph G, int *topo);
+
 
 
 // Grafos aleatórios
 ////////////////////////////////////////////////////////////////////////
 
-// Constrói grafo aleatório com vértices 0..V-1 e exatamente A arcos. Se
-// A for maior que V*(V-1), a função troca A por V*(V-1). Se A for
-// próximo de V*(V-1), a função consume muuuito tempo. Por isso, a
-// função não deve ser usada para gerar grafos muito densos.
+// Constrói grafo aleatório com vértices 0..V-1 e exatamente A arcos. A
+// função supõe que A <= V*(V-1). Se A for próximo de V*(V-1), a função
+// consume muuuito tempo. Por isso, a função não deve ser usada para
+// gerar grafos muito densos.
 Graph 
 GRAPHrand1( int V, int A);
 
 // Constrói grafo não-dirigido aleatório com vértices 0..V-1 e
-// exatamente E arestas. Se E for maior que V*(V-1)/2, a função troca E
-// por V*(V-1)/2. Se E for proximo de V*(V-1)/2, a função consume
-// muuuito tempo. Por isso, a função não deve ser usada para gerar
-// grafos muito densos.
+// exatamente E arestas. A função supõe que E <= V*(V-1)/2. Se E for
+// proximo de V*(V-1)/2, a função consume muuuito tempo. Por isso, a
+// função não deve ser usada para gerar grafos muito densos.
 UGraph 
 UGRAPHrand1( int V, int E);
 
@@ -433,9 +449,8 @@ UGRAPHrand1_C( int V, int E, int cmin, int cmax);
 // Constrói um grafo aleatório com vértices 0..V-1. Cada um dos V*(V-1)
 // possíveis arcos é inserido com probabilidade p, sendo p calculado de
 // modo que o número esperado de arcos seja A. A função supõe que 
-// V >= 2 e A <= V*(V-1). (Se V for menor que 2, a função adota V = 2.
-// Se A for maior que V*(V-1), a função adota A = V*(V-1).) A função é
-// mais usada para gerar grafos densos.
+// V >= 2 e A <= V*(V-1). A função é mais usada para gerar grafos
+// densos.
 Graph 
 GRAPHrand2( int V, int A);
 
@@ -619,20 +634,29 @@ GRAPHdfsIterative( Graph G, int *pre, int *post, vertex *pa);
 // (= path) é um passeio sem arcos repetidos. Um ciclo (= cycle) é um
 // caminho fechado. 
 
-// Decide se o grafo G admite tem um ciclo. Em caso negativo, armazena
-// em post[0...V-1] uma numeração anti-topológica de G.
+// Decide se o grafo G tem ciclo. (Versão 1: faz uma busca DFS completa
+// e depois procura um arco de retorno.)
 bool 
-GRAPHhasCycle( Graph G, int *post);
+GRAPHhasCycle_v1( Graph G);
 
-// Decide se o grafo G admite uma numeração topológica.
+// Decide se o grafo G tem ciclo. (Versão 2: interrompe a busca DFS tão
+// logo encontra um arco de retorno.)
 bool 
-GRAPHisTopological( Graph G, int *post);
+GRAPHhasCycle_v2( Graph G);
 
-#define GRAPHisDag GRAPHisTopological
+// Versão default.
+#define GRAPHhasCycle GRAPHhasCycle_v2
 
-// Um grafo é um dag (ou seja, acíclico) se e somente se tem uma
-// numeração topológica dos vértices.
-#define GRAPHisDag GRAPHisTopological
+// Decide se o grafo G é um dag.
+bool 
+GRAPHisDag( Graph G);
+
+// Recebe um grafo G e devolve um vértice z de um ciclo ou -1 se G é um
+// dag. No primeiro caso, z pa[z] pa[pa[z]] ... z é o reverso de um
+// ciclo. No segundo caso, post[] é uma numeração anti-topológica.
+// (A função é uma extensão de GRAPHhasCycle().)
+int 
+GRAPHcycle( Graph G, int *post, vertex *pa);
 
 
 
@@ -646,7 +670,7 @@ GRAPHisTopological( Graph G, int *post);
 // somente se cc[v] == cc[w]. (O sufixo "cc" é uma abreviatura de
 // "connected component".)
 int
-UGRAPHcc( UGraph G, int cc[]);
+UGRAPHcc( UGraph G, int *cc);
 
 // Decide se o grafo não-dirigido G é conexo.
 bool 
@@ -684,7 +708,7 @@ DAGshortestPaths( Dag G, vertex *vv, vertex s, vertex *pa, int *dist);
 // arcos) são armazenadas no vetor dist[0..V-1]. O espaço para os
 // vetores dist[] e pa[] deve ser alocado pelo cliente.
 void 
-GRAPHshortestPaths( Graph G, vertex s, int dist[], vertex pa[]);
+GRAPHshortestPaths( Graph G, vertex s, int *dist, vertex *pa);
 
 
 
@@ -701,6 +725,12 @@ GRAPHshortestPaths( Graph G, vertex s, int dist[], vertex pa[]);
 // caso de resposta negativa, G é uma floresta.
 bool 
 UGRAPHhasCircuit( UGraph G);
+
+// Recebe um grafo não-dirigido G e devolve um inteiro w. Se w == -1,
+// o grafo é uma floresta, senão o grafo tem um circuito. No segundo
+// caso, w é um vértice e w-p[w]-pa[pa[w]]-... é um circuito.
+int 
+UGRAPHcircuit( UGraph G, vertex *pa);
 
 // Decide se o grafo não-dirigido G é uma floresta.
 bool
@@ -748,7 +778,7 @@ GRAPHreverse( Graph G);
 // mesmo bloco da primeira partição se e somente estão no mesmo bloco
 // da segunda partição. 
 bool 
-GRAPHcomparePartitions( int sc1[], int sc2[], Graph G);
+GRAPHcomparePartitions( int *sc1, int *sc2, Graph G);
 
 // Algoritmos ingênuos 
 
@@ -780,6 +810,14 @@ GRAPHscNaive2( Graph G, int *sc);
 int 
 GRAPHscTarjan( Graph G, int *sc);
 
+// Esta função devolve o número (quantidade) de componentes fortes do
+// grafo G. Também atribui um rótulo sc[v] (os rótulos são 0,1,2,...) 
+// a cada vértice v de G de modo que dois vértices tenham o mesmo 
+// rótulo se e somente se os dois pertencem à mesma componente forte.  
+// A função é linear: consome tempo proporcional a V+A.
+int 
+GRAPHscTarjanSedgewick( Graph G, int *sc);
+
 // Versão default das funções de cálculo de componentes fortes.
 #define GRAPHscT GRAPHscTarjan
 
@@ -806,7 +844,7 @@ GRAPHscKosaraju( Graph G, int *sc);
 // vetor color[0..V-1]. Usa um algoritmo força-bruta de backtracking
 // (portanto consome tempo exponencial).
 bool 
-UGRAPHcoloring( UGraph G, int color[], int k);
+UGRAPHcoloring( UGraph G, int *color, int k);
 
 
 
@@ -819,6 +857,47 @@ UGRAPHcoloring( UGraph G, int color[], int k);
 // vértices são armazenadas no vetor color[] indexado pelos vértices.
 bool 
 UGRAPHtwoColor( UGraph G, int *color);
+
+// Recebe um grafo não-dirigido G e devolve true ou false. No primeiro
+// caso, armazena uma bicoloração dos vértices de G (as duas cores são
+// 0 e 1) no vetor color[0..V-1]. No segundo caso, armazena (a sequência
+// de vértices de) um circuito ímpar no vetor oddc[0..k], sendo k >= 1 o
+// menor índice tal que v[k] == v[0]. 
+bool
+UGRAPHtwoColorOrOddCircuit( UGraph G, int *color, int *oddc);
+
+
+
+// Emparelhamentos (= matchings)
+////////////////////////////////////////////////////////////////////////
+
+// Um emparelhamento é representado por um vetor match[0..V-1] de
+// vértices indexado por vértices. Se o emparelhamento casa um vértice v
+// com um vértice w, teremos match[v] == w e match[w] == v. Se v é
+// solteiro (ou seja, não incide em aresta alguma do empaelhamento),
+// adota a convenção match[v] == -1. É claro que vale a seguinte
+// propriedade: se match[v] != -1 então match[match[v]] == v.
+
+
+
+// Emparelhamentos em grafos bipartidos (= bipartite matching)
+////////////////////////////////////////////////////////////////////////
+
+// Esta função calcula um emparelhamento máximo M no grafo não-dirigido
+// bipartido G. A bipartição de G é dada pelo vetor color[0..V-1], que
+// tem valores 0 e 1. A função devolve o tamanho de M e armazena uma
+// representação de M no vetor match[0..V-1]. A função usa busca BFS
+// para procurar caminhos de aumento.
+int 
+UGRAPHbipMatchBFS( UGraph G, int *color, vertex *match);
+
+// Função análoga a UGRAPHbipMatchBFS(), mas usa busca DFS para procurar
+// caminhos de aumento.
+int 
+UGRAPHbipMatchDFS( UGraph G, int *color, vertex * match);
+
+// Versão default da função de emparelhamento bipartido máximo.
+#define UGRAPHbipMatch UGRAPHbipMatchBFS
 
 
 
@@ -834,7 +913,7 @@ UGRAPHtwoColor( UGraph G, int *color);
 // algoritmo de Prim. A função é quadrática: consome V*E unidades de
 // tempo no pior caso. 
 int
-UGRAPHmstP0( UGraph G, vertex pa[]);
+UGRAPHmstP0( UGraph G, vertex *pa);
 
 // Recebe um grafo não-dirigido conexo G com custos arbitrários nas
 // arestas e devolve o custo de uma MST de G. (Se G não for conexo,
@@ -844,7 +923,7 @@ UGRAPHmstP0( UGraph G, vertex pa[]);
 // algoritmo de Prim apropriada para grafos densos. A função consome
 // V^2 unidades de tempo no pior caso.
 int
-UGRAPHmstP1( UGraph G, vertex pa[]);
+UGRAPHmstP1( UGraph G, vertex *pa);
 
 // Recebe um grafo não-dirigido conexo G com custos arbitrários nas
 // arestas e devolve o custo de uma MST de G. (Se G não for conexo,
@@ -856,7 +935,7 @@ UGRAPHmstP1( UGraph G, vertex pa[]);
 // pior caso. O código é uma versão melhorada do Programa 21.1 de
 // Sedgewick. 
 int
-UGRAPHmstP2( UGraph G, vertex pa[]);
+UGRAPHmstP2( UGraph G, vertex *pa);
 
 // Recebe um grafo não-dirigido conexo G com custos arbitrários nas
 // arestas e devolve o custo de uma MST de G. (Se G não for conexo,
@@ -866,7 +945,7 @@ UGRAPHmstP2( UGraph G, vertex pa[]);
 // do algoritmo de Prim apropriada para grafos esparsos. Consome
 // E log V unidades de tempo no pior caso.
 int
-UGRAPHmstP3( UGraph G, vertex pa[]);
+UGRAPHmstP3( UGraph G, vertex *pa);
 
 
 
@@ -973,40 +1052,6 @@ GRAPHmaxSimplePath( Graph G, vertex s, vertex t);
 // função só é razoável para grafos MUITO PEQUENOS.
 int 
 GRAPHmaxSimplePath_C( Graph G, vertex s, vertex t);
-
-
-
-// Emparelhamentos (= matchings)
-////////////////////////////////////////////////////////////////////////
-
-// Um emparelhamento é representado por um vetor match[0..V-1] de
-// vértices indexado por vértices. Se o emparelhamento casa um vértice v
-// com um vértice w, teremos match[v] == w e match[w] == v. Se v é
-// solteiro (ou seja, não incide em aresta alguma do empaelhamento),
-// adota a convenção match[v] == -1. É claro que vale a seguinte
-// propriedade: se match[v] != -1 então match[match[v]] == v.
-
-
-
-// Emparelhamentos em grafos bipartidos (= bipartite matching)
-////////////////////////////////////////////////////////////////////////
-
-// Esta função calcula um emparelhamento máximo M no grafo não-dirigido
-// bipartido G. A bipartição de G é dada pelo vetor color[0..V-1], que
-// tem valores 0 e 1. A função devolve o tamanho de M e armazena uma
-// representação de M no vetor match[0..V-1]. A função usa busca BFS
-// para procurar caminhos de aumento.
-int 
-UGRAPHbipMatchBFS( UGraph G, int *color, vertex *match);
-
-// Função análoga a UGRAPHbipMatchBFS(), mas usa busca DFS para procurar
-// caminhos de aumento.
-int 
-UGRAPHbipMatchDFS( UGraph G, int *color, vertex * match);
-
-// Versão default da função de emparelhamento bipartido máximo.
-#define UGRAPHbipMatch UGRAPHbipMatchBFS
-
 
 
 
