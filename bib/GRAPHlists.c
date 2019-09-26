@@ -7,7 +7,7 @@
 // www.ime.usp.br/~pf/algoritmos/aulas/layout.html) e não use tabs.
 
 // Este arquivo: GRAPHlists.c (codificação UTF-8)
-// Data: 2019-08-20
+// Data: 2019-09-20
 // Autor: Paulo Feofiloff
 //
 // Esta é a implementação de uma biblioteca de manipulação de grafos
@@ -20,8 +20,8 @@
 ////////////////////////////////////////////////////////////////////////
 
 
-// #define DEBUG false
-#define DEBUG true
+#define DEBUG false
+// #define DEBUG true
 
 
 
@@ -30,9 +30,9 @@
 
 #include "GRAPHlists.h"
 // A interface GRAPHlists.h define a estrutura graph e o tipo-de-dados
-// Graph. Também contém inclui as interfaces QUEUE.h, PQ.h, UF.h e
-// MYTOOLS.h. Também contém as interfaces padrão stdlib.h, stdio.h,
-// string.h, limits.h e stdbool.h.
+// Graph. Também contém inclui as interfaces STACK.h, QUEUE.h, PQ.h,
+// UF.h e MYTOOLS.h. Também contém as interfaces padrão stdlib.h,
+// stdio.h, string.h, limits.h e stdbool.h.
 
 
 
@@ -100,24 +100,9 @@ UGRAPHinsertEdgeQuick( UGraph G, vertex v, vertex w) {
    GRAPHinsertArcQuick( G, w, v);
 }
 
+// Versão "pedestre" de GRAPHremoveArcVersaoPedestre.
 void
-GRAPHremoveArc( Graph G, vertex v, vertex w) {
-   link *aa = &(G->adj[v]); // A
-   while (*aa != NULL && (*aa)->w != w)
-      aa = &(*aa)->next; // B
-   if (*aa != NULL) {
-      link b = *aa;
-      *aa = b->next;
-      free( b);
-      G->A--;
-   }
-}
-// Observação A: &G->adj[v] significa &(G->adj[v])
-// Observação B: &(*aa)->next significa &((*aa)->next)
-//               e é diferente de *aa->next
-
-void
-GRAPHremoveArcVersaoPedestre( Graph G, vertex v, vertex w) {
+GRAPHremoveArc_v0( Graph G, vertex v, vertex w) {
    link a = G->adj[v];
    if (a != NULL && a->w == w) {
       G->adj[v] = a->next;
@@ -135,6 +120,22 @@ GRAPHremoveArcVersaoPedestre( Graph G, vertex v, vertex w) {
       }
    }
 }
+
+void
+GRAPHremoveArc( Graph G, vertex v, vertex w) {
+   link *aa = &(G->adj[v]); // A
+   while (*aa != NULL && (*aa)->w != w)
+      aa = &(*aa)->next; // B
+   if (*aa != NULL) {
+      link b = *aa;
+      *aa = b->next;
+      free( b);
+      G->A--;
+   }
+}
+// Observação A: &G->adj[v] significa &(G->adj[v])
+// Observação B: &(*aa)->next significa &((*aa)->next)
+//               e é diferente de *aa->next
 
 void
 UGRAPHremoveEdge( UGraph G, vertex v, vertex w) {
@@ -159,6 +160,15 @@ GRAPHshowArcs( Graph G) {
          printf( "%d %d\n", v, a->w);
 }
 
+Graph
+GRAPHcopy( Graph G) {
+   Graph H = GRAPHinit( G->V);
+   for (vertex v = 0; v < G->V; ++v)
+      for (link a = G->adj[v]; a != NULL; a = a->next)
+         GRAPHinsertArcQuick( H, v, a->w);
+   return H;
+}
+
 // Função privada auxiliar usada por GRAPHdestroy(). Ela libera os nós
 // da lista encadeada lst.
 static void
@@ -169,6 +179,8 @@ freelist( link lst) {
    }
 }
 
+// Esta é uma função-invólucro (= wrapper function). O serviço pesado é
+// executado por freelist().
 void
 GRAPHdestroy( Graph G) {
    for (vertex v = 0; v < G->V; ++v)
@@ -211,12 +223,15 @@ invertR( link a) {
    return aa;
 }
 
+// Esta é uma função-invólucro (= wrapper function). O serviço pesado é
+// executado por invertR().
 void
 GRAPHinvertLists_R( Graph G) {
    for (vertex v = 0; v < G->V; ++v)
       G->adj[v] = invertR( G->adj[v]);
 }
 
+// Esta é uma versão não recursiva de GRAPHinvertLists_R().
 void
 GRAPHinvertLists_I( Graph G) {
    for (vertex v = 0; v < G->V; ++v) {
@@ -339,9 +354,6 @@ isTopo( Graph G, int topo[]) {
 // Grafos aleatórios
 ////////////////////////////////////////////////////////////////////////
 
-// A função rand() da biblioteca stdlib produz um número inteiro
-// aleatórios no intervalo fechado 0..RAND_MAX.
-
 // Esta função privada auxiliar devolve um vértice aleatório do grafo G.
 // (Vamos supor que G->V <= RAND_MAX.) Ela é apenas um invólucro para a
 // função rand() da biblioteca stdlib, que produz um número inteiro
@@ -350,39 +362,6 @@ static vertex
 randV( Graph G) {
    double r = rand() / (RAND_MAX + 1.0); // 0 <= r < 1
    return r * G->V;
-}
-
-// Função privada auxiliar. Devolve um inteiro aleatório entre a e b
-// inclusive, ou seja, no intervalo fechado [a,b]. Vamos supor que
-// a <= b e que b-a <= RAND_MAX. (O código foi copiado da biblioteca
-// random de Eric Roberts.)
-static int
-randInteger( int a, int b) {
-    double d = (double) rand() / ((double) RAND_MAX + 1);
-    // 0 <= d < 1
-    int k = d * (b - a + 1); // 0 <= k <= b-a
-    return a + k;
-}
-
-// Função privada auxiliar. Devolve um número real aleatório no
-// intervalo semi-aberto [a,b). O código foi copiado da biblioteca
-// random de Eric Roberts.
-static double
-randReal( double a, double b) {
-    double d = (double) rand() / ((double) RAND_MAX + 1);
-    // 0 <= d < 1
-    return a + d * (b - a);
-}
-
-// Função privada auxiliar. Faz uma permutação aleatória (random
-// shuffle) dos elementos do vetor v[0..V-1].
-static void
-randPermutation( int v[], int V) {
-   for (int n = V-1; n > 0; --n) {
-      int r = randInteger( 0, n); // 0 <= r <= n
-      int t;
-      t = v[n], v[n] = v[r], v[r] = t;
-  }
 }
 
 // Código inspirado no Programa 17.7 de Sedgewick.
@@ -491,6 +470,46 @@ UGRAPHbuildCircuit( int V) {
 }
 
 Graph
+GRAPHbuildRootedTree( int V) {
+   Graph G = GRAPHinit( V);
+   vertex *vv = mallocc( V * sizeof (vertex));
+   for (int i = 0; i < V; ++i) vv[i] = i;
+   randPermutation( vv, V);
+   for (int i = 0; i < V-1; ++i) {
+      int j = randInteger( i+1, V-1);
+      GRAPHinsertArcQuick( G, vv[j], vv[i]);
+   }
+   free( vv);
+   return G;
+}
+
+UGraph
+UGRAPHrandTree( int V) {
+   vertex *vv = mallocc( V * sizeof (vertex));
+   for (int i = 0; i < V; ++i) vv[i] = i;
+   randPermutation( vv, V);
+   UGraph G = UGRAPHinit( V);
+   for (int j = 1; j < G->V; ++j) {
+      int i = randInteger( 0, j-1);
+      UGRAPHinsertEdgeQuick( G, vv[i], vv[j]);
+   }
+   free( vv);
+   return G;
+}
+
+UGraph
+UGRAPHrand1connected( int V, int E) {
+   UGraph G = UGRAPHrandTree( V);
+   while (G->A < 2*E) {
+      vertex v = randV( G);
+      vertex w = randV( G);
+      if (v != w)
+         UGRAPHinsertEdge( G, v, w);
+   }
+   return G;
+}
+
+Graph
 GRAPHbuildGrid( int m, int n) {
    int V = m * n;
    Graph G = GRAPHinit( V);
@@ -545,6 +564,8 @@ reachR( Graph G, vertex v, bool *visited) {
          reachR( G, a->w, visited);
 }
 
+// Esta é uma função-invólucro (= wrapper function). O serviço pesado é
+// executado por reachR().
 bool
 GRAPHreach( Graph G, vertex s, vertex t) {
    bool *visited = mallocc( G->V * sizeof (bool));
@@ -575,7 +596,7 @@ static int cnt, cntt;
 // número pre[x] a cada x em X: se x é o k-ésimo vértice descoberto
 // então pre[x] recebe o valor cnt + k.
 static void
-dfsR( Graph G, vertex v, int *pre, int *post, vertex *pa) {
+  dfsR( Graph G, vertex v, int *pre, int *post, vertex *pa) {
    pre[v] = cnt++;
    for (link a = G->adj[v]; a != NULL; a = a->next)
       if (pre[a->w] == -1) {
@@ -585,7 +606,8 @@ dfsR( Graph G, vertex v, int *pre, int *post, vertex *pa) {
    post[v] = cntt++;
 }
 
-// Código inspirado no programa 18.3 de Sedgewick.
+// Esta é uma função-invólucro (= wrapper function). O serviço pesado é
+// executado por dfsR(). Código inspirado no programa 18.3 de Sedgewick.
 void
 GRAPHdfs( Graph G, int *pre, int *post, vertex *pa) {
    cnt = cntt = 0;
@@ -606,13 +628,15 @@ GRAPHdfs( Graph G, int *pre, int *post, vertex *pa) {
 // Ciclos e dags
 ////////////////////////////////////////////////////////////////////////
 
+// Versão default da função GRAPHhasCycle().
+#define GRAPHhasCycle GRAPHhasCycle_v2
 
 // Faz uma busca DFS completa e depois procura um arco de retorno.
 bool
 GRAPHhasCycle_v1( Graph G) {
    int *pre = mallocc( G->V * sizeof (int));
    int *post = mallocc( G->V * sizeof (int));
-   int *pa = mallocc( G->V * sizeof (vertex));
+   vertex *pa = mallocc( G->V * sizeof (vertex));
    GRAPHdfs( G, pre, post, pa);
    free( pa);
    for (vertex v = 0; v < G->V; ++v) {
@@ -650,12 +674,15 @@ dfsRcycle( Graph G, vertex v, int *pre, int *post, vertex *pa) {
    return false;
 }
 
-// Interrompe a busca DFS logo que encontra um arco de retorno.
+// Esta é uma função-invólucro (= wrapper function). O serviço pesado é
+// executado por dfsRcycle(). Interrompe a busca DFS tão logo encontra
+// um arco de retorno. Esta é uma versão on-the-fly de
+// GRAPHhasCycle_v1().
 bool
 GRAPHhasCycle_v2( Graph G) {
    int *pre = mallocc( G->V * sizeof (int));
    int *post = mallocc( G->V * sizeof (int));
-   int *pa = mallocc( G->V * sizeof (vertex));
+   vertex *pa = mallocc( G->V * sizeof (vertex));
    cnt = cntt = 0;
    for (vertex v = 0; v < G->V; ++v)
       pre[v] = post[v] = -1;
@@ -687,16 +714,17 @@ GRAPHisDag( Graph G) {
 // número id a todos os vértices que estão na componente conexa que
 // contém v. O código é uma adaptação de dfsR().
 static void
-dfsRcc( UGraph G, int cc[], vertex v, int id) {
+dfsRcc( UGraph G, vertex v, int cc[], int id) {
    cc[v] = id;
    for (link a = G->adj[v]; a != NULL; a = a->next)
       if (cc[a->w] == -1)
-         dfsRcc( G, cc, a->w, id);
+         dfsRcc( G, a->w, cc, id);
 }
 
-// O código da função é uma adaptação da busca em profundidade
-// GRAPHdfs(). O código foi copiado do programa 18.4, p.100, de
-// Sedgewick.
+// Esta é uma função-invólucro (= wrapper function). O serviço pesado é
+// executado por dfsRcc(). O código da função é uma adaptação da busca
+// em profundidade GRAPHdfs(). O código foi copiado do programa 18.4,
+// p.100, de Sedgewick.
 int
 UGRAPHcc( UGraph G, int cc[]) {
    int id = 0;
@@ -704,7 +732,7 @@ UGRAPHcc( UGraph G, int cc[]) {
       cc[v] = -1;
    for (vertex v = 0; v < G->V; ++v)
       if (cc[v] == -1)
-         dfsRcc( G, cc, v, id++);
+         dfsRcc( G, v, cc, id++);
    return id;
 }
 
@@ -808,17 +836,268 @@ GRAPHshortestPaths( Graph G, vertex s, int dist[], vertex pa[]) {
 // Circuitos e florestas (não-radicadas)
 ////////////////////////////////////////////////////////////////////////
 
+// Versão default da função UGRAPHhasCircuit().
+#define UGRAPHhasCircuit UGRAPHhasCircuit_v2
+
+bool
+UGRAPHhasCircuit_v1( UGraph G) {
+   int *pre = mallocc( G->V * sizeof (int));
+   int *post =  mallocc( G->V * sizeof (int));
+   vertex *pa = mallocc( G->V * sizeof (vertex));
+   GRAPHdfs( G, pre, post, pa); // calcula pre[], post[] e pa[]
+   free( post);
+   for (vertex v = 0; v < G->V; ++v) {
+      for (link a = G->adj[v]; a != NULL; a = a->next) {
+         vertex w = a->w;
+         if (pre[w] < pre[v]) // v-w é de retorno
+            if (w != pa[v]) {
+               free( pre); free( pa);
+               return true;
+            }
+      }
+   }
+   free( pre); free( pa);
+   return false;
+}
+
+// Função privada auxiliar usada por UGRAPHhasCircuit_v2(). Recebe um
+// grafo G e devolve true se encontrar um circuito ao percorrer G a
+// partir do vértice v.
+static bool
+dfsRcircuit( UGraph G, vertex v, int *pre, vertex *pa) {
+   pre[v] = cnt++;
+   for (link a = G->adj[v]; a != NULL; a = a->next) {
+      vertex w = a->w;
+      if (pre[w] == -1) {
+         pa[w] = v;
+         if (dfsRcircuit( G, w, pre, pa)) return true;
+      } else { // pre[w] < pre[v]
+         if (w != pa[v]) return true;
+      }
+   }
+   return false;
+}
+
+// Esta é uma função-invólucro (wrapper function). O serviço pesado é
+// executado pela função privada hasCircuit(). Esta função é uma versão
+// on-the-fly da função UGRAPHhasCircuit_v1().
+bool
+UGRAPHhasCircuit_v2( UGraph G) {
+   int *pre = mallocc( G->V * sizeof (int));
+   vertex *pa = mallocc( G->V * sizeof (vertex));
+   cnt = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      pre[v] = -1;
+   for (vertex v = 0; v < G->V; ++v) {
+      if (pre[v] == -1) {
+         pa[v] = v;
+         if (dfsRcircuit( G, v, pre, pa)) {
+            free( pre); free( pa);
+            return true;
+         }
+      }
+   }
+   free( pre); free( pa);
+   return false;
+}
+
+// Esta é uma função-invólucro (= wrapper function). O serviço pesado é
+// executado por UGRAPHhasCircuit().
+bool
+UGRAPHisForest( UGraph G) {
+   return !UGRAPHhasCircuit( G);
+}
+
+// Esta é uma função-invólucro (= wrapper function). O serviço pesado é
+// executado por UGRAPHisForest() e UGRAPHisConnected().
+bool
+UGRAPHisTree( UGraph G) {
+   return UGRAPHisForest( G) && UGRAPHisConnected( G);
+}
 
 
-// Componentes aresta-biconexas (= edge-biconnected components = ebc)
+
+// Grafos aresta-biconexos
 ////////////////////////////////////////////////////////////////////////
 
-// Implementação ingênua. Remove todas as arestas cuja remoção
-// desconecta o grafo (= pontes) e calcula as componentes conexas do que
-// sobrou.
+void
+UGRAPHlo_v0( UGraph G, int *pre, int *post, vertex *pa, int *lo) {
+   vertex v, w; link a;
+   GRAPHdfs( G, pre, post, pa); // calcula pre[], post[] e pa[]
+   vertex *vv = mallocc( G->V * sizeof (vertex));
+   for (v = 0; v < G->V; ++v)
+      vv[post[v]] = v;
+   // vv[0..V-1] é permutação dos vértices em pós-ordem
+   for (int i = 0; i < G->V; ++i) {
+      v = vv[i];
+      lo[v] = pre[v];
+      for (a = G->adj[v]; a != NULL; a = a->next) {
+         w = a->w;
+         if (pre[w] < pre[v]) { // w é ancestral próprio de v
+            if (w != pa[v] && pre[w] < lo[v])
+               lo[v] = pre[w];
+         } else { // w é descendente próprio de v
+            if (pa[w] == v && lo[w] < lo[v])
+               lo[v] = lo[w];
+         }
+      }
+   }
+   free( vv);
+}
+
+// Função privada auxiliar usada por UGRAPHlo_v1().
+static void
+dfsRlo( UGraph G, vertex v, int *pre, int *post, vertex *pa, int *lo) {
+   pre[v] = cnt++;
+   lo[v] = pre[v];
+   for (link a = G->adj[v]; a != NULL; a = a->next) {
+      vertex w = a->w;
+      if (pre[w] != -1) { // w é ancestral próprio de v
+         if (w != pa[v] && pre[w] < lo[v])
+            lo[v] = pre[w];
+      } else {
+         pa[w] = v;
+         dfsRlo( G, w, pre, post, pa, lo);
+         if (lo[w] < lo[v])
+            lo[v] = lo[w];
+      }
+   }
+   post[v] = cntt++;
+}
+
+// Versão recursiva. Usa dfsRlo().
+void
+UGRAPHlo_v1( UGraph G, int *pre, int *post, vertex *pa, int *lo) {
+   for (vertex v = 0; v < G->V; ++v)
+      pre[v] = -1, pa[v] = v;
+   cnt = cntt = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      if (pre[v] == -1) {
+         pa[v] = v;
+         dfsRlo( G, v, pre, post, pa, lo);
+      }
+}
+
+// Muito ingênua e lenta. Verifica se a remoção de uma aresta desconecta
+// o grafo. Algoritmo quadrático: consome (V+E)*V unidades de tempo.
+bool
+UGRAPHisEbc_v0( UGraph G) {
+   if (!UGRAPHisConnected( G))
+      return false;
+   UGraph GG = GRAPHcopy( G);
+   for (vertex v = 0; v < G->V; ++v) { // yes, G
+      for (link a = G->adj[v]; a != NULL; a = a->next) { // yes, G
+         vertex w = a->w;
+         if (w < v) continue;
+         GRAPHremoveArc( GG, v, w);
+         if (!GRAPHreach( GG, v, w)) {
+            GRAPHdestroy( GG);
+            return false;
+         }
+         GRAPHinsertArcQuick( GG, v, w);
+      }
+   }
+   GRAPHdestroy( GG);
+   return true;
+}
+
+// Usa UGRAPHlo() para calcular lo[] (um arco x-y faz parte de uma ponte
+// se e somente se x == pa[y] e lo[y] == pre[y]. Depois examina todos os
+// vértices à procura de pontes. Linear: consome V+E unidades de tempo.
+bool
+UGRAPHisEbc_v3( UGraph G) {
+   vertex v;
+   int *pre = mallocc( G->V * sizeof (int));
+   int *post =  mallocc( G->V * sizeof (int));
+   vertex *pa = mallocc( G->V * sizeof (vertex));
+   int *lo = mallocc( G->V * sizeof (int));
+   // muitos escrevem "low" no lugar do meu "lo"
+   UGRAPHlo( G, pre, post, pa, lo); // calcula pre[], post[], pa[], lo[]
+   free( post);
+   bool b = true;
+   for (v = 0; v < G->V; ++v) {
+      if (lo[v] == pre[v] && pa[v] != v) {
+         b = false; // pa[v]-v é ponte
+         break;
+      }
+   }
+   int roots = 0;
+   for (v = 0; v < G->V; ++v) {
+      if (pa[v] == v) ++roots;
+      if (roots > 1) {
+         b = false; // G é desconexo;
+         break;
+      }
+   }
+   free( lo);
+   free( pa);
+   free( pre);
+   return b;
+}
+
+// Função privada auxiliar usada por UGRAPHisEbc_v4(). Calcula lo[v].
+// Devolve true se encontrar uma ponte na subfloresta DFS que tem v como
+// raiz e devolve false em caso contrário.
+static bool
+dfsRbridge( UGraph G, vertex v, int *pre, vertex *pa, int *lo) {
+   vertex w; link a;
+   pre[v] = cnt++;
+   lo[v] = pre[v];
+   for (a = G->adj[v]; a != NULL; a = a->next) {
+      w = a->w;
+      if (pre[w] != -1) { // v-w é arco de avanço ou de retorno
+         if (w != pa[v] && pre[w] < lo[v]) // w é ancestral de pa[v]
+            lo[v] = pre[w];
+      } else {
+         pa[w] = v;
+         if (dfsRbridge( G, w, pre, pa, lo)) // calcula lo[w]
+            return true;
+         if (lo[w] == pre[w]) // v-w é ponte
+            return true;
+         if (lo[w] < lo[v])
+            lo[v] = lo[w];
+      }
+   }
+   return false;
+}
+
+// Esta é uma função-invólucro (= wrapper function). O serviço pesado é
+// executado por dfsRbridge(). Algoritmo linear sofisticado, "em tempo
+// real" (on-the-fly). Faz uma busca DFS que calcula o lowest preorder
+// number de cada vértice. Código inspirado no programa 18.7, p.108, de
+// Sedgewick.
+bool
+UGRAPHisEbc_v4( UGraph G) {
+   int *pre = mallocc( G->V * sizeof (int));
+   vertex *pa = mallocc( G->V * sizeof (vertex));
+   int *lo = mallocc( G->V * sizeof (int));
+   // muitos escrevem "low" no lugar do meu "lo"
+   bool b = true;
+   for (vertex v = 0; v < G->V; ++v)
+      pre[v] = -1;
+   cnt = 0;
+   pa[0] = 0;
+   if (dfsRbridge( G, 0, pre, pa, lo))
+      b = false;
+   for (vertex v = 1; v < G->V; ++v)
+      if (pre[v] == -1)
+         b = false; // G é desconexo
+   free( pa);
+   free( pre);
+   free( lo);
+   return b;
+}
+
+
+
+// Componentes aresta-biconexas (= edge-biconnected components = ebcc)
+////////////////////////////////////////////////////////////////////////
+
+// Implementação ingênua. Remove todas as pontes e calcula as
+// componentes conexas do que sobrou.
 int
-UGRAPHebcNaive( UGraph G, int *ebc) {
-   Graph GG = G;
+UGRAPHebcc_v0( UGraph G, int *ebcc) {
+   Graph GG = GRAPHcopy( G);
    int *pre = mallocc( GG->V * sizeof (int));
    int *post =  mallocc( GG->V * sizeof (int));
    vertex *pa = mallocc( GG->V * sizeof (vertex));
@@ -828,17 +1107,148 @@ UGRAPHebcNaive( UGraph G, int *ebc) {
    for (vertex v = 0; v < GG->V; ++v) {
       vertex u = pa[v];
       if (u == v) continue;
-      GRAPHremoveArc( GG, v, u);
-      if (GRAPHreach( GG, v, u) == true)
-         GRAPHinsertArc( GG, v, u);
-      else
-         GRAPHremoveArc( GG, u, v);
+      UGRAPHremoveEdge( GG, v, u);
+      if (GRAPHreach( GG, v, u))
+         UGRAPHinsertEdge( GG, v, u);
    }
-   // GG has no bridges
-   int k = UGRAPHcc( GG, ebc);
+   // GG não tem pontes
+   int id = UGRAPHcc( GG, ebcc);
+   // GG tem id componentes conexas
    UGRAPHdestroy( GG);
    free( pa);
-   return k;
+   return id;
+}
+
+// Implementação menos ingênua. Usa UGRAPHlo() para encontrar as pontes.
+// Remove as pontes e calcula as componentes conexas do que sobrou.
+int
+UGRAPHebcc_v1( UGraph G, int *ebcc) {
+   Graph GG = GRAPHcopy( G);
+   int *pre = mallocc( GG->V * sizeof (int));
+   int *post =  mallocc( GG->V * sizeof (int));
+   int *lo =  mallocc( GG->V * sizeof (int));
+   vertex *pa = mallocc( GG->V * sizeof (vertex));
+   UGRAPHlo( GG, pre, post, pa, lo);
+   // preenche pre[], post[], pa[] e lo[]
+   free( post);
+   for (vertex v = 0; v < GG->V; ++v) {
+      if (pre[v] == lo[v]) {
+         if (pa[v] == v) continue;
+         UGRAPHremoveEdge( GG, pa[v], v);
+      }
+   }
+   // GG não tem pontes
+   int id = UGRAPHcc( GG, ebcc);
+   // GG tem id componentes conexas
+   UGRAPHdestroy( GG);
+   free( pa);
+   free( pre);
+   free( lo);
+   return id;
+}
+
+// Função privada auxiliar usada por UGRAPHebcc_v3(). Faz ebcc[x] = id
+// para todo vértice x que tenha ebcc[x] == -1 e seja descendente de v
+// na floresta radicada representada por pa[].
+static void
+compR( UGraph G, vertex v, int *ebcc, vertex *pa, int id) {
+   ebcc[v] = id;
+   for (link a = G->adj[v]; a != NULL; a = a->next) {
+      vertex w = a->w;
+      if (pa[w] == v && ebcc[w] == -1)
+         compR( G, w, ebcc, pa, id);
+   }
+}
+
+// Usa UGRAPHlo() para calcular lo[]. Depois examina os vértices em pos-
+// ordem à procura de cabeças de componentes.
+int
+UGRAPHebcc_v3( UGraph G, int *ebcc) {
+   int *pre = mallocc( G->V * sizeof (int));
+   int *post =  mallocc( G->V * sizeof (int));
+   vertex *pa = mallocc( G->V * sizeof (vertex));
+   int *lo = mallocc( G->V * sizeof (int));
+   // muitos livros escrevem "low" no lugar do meu "lo"
+   UGRAPHlo( G, pre, post, pa, lo); // calcula pre[], post[], pa[] e lo[]
+   // v é cabeça de componente aresta-biconexa sse lo[v] == pre[v]
+   // x-y é ponte sse x = pa[y] e lo[y] == pre[y]
+   vertex *vv = mallocc( G->V * sizeof (vertex));
+   for (vertex v = 0; v < G->V; ++v)
+      vv[post[v]] = v;
+   // vv[0..V-1] é permutação dos vértices em pós-ordem
+   for (vertex v = 0; v < G->V; ++v)
+      ebcc[v] = -1;
+   int id = 0;
+   for (int i = 0; i < G->V; ++i) {
+      vertex v = vv[i];
+      if (lo[v] == pre[v]) // ebcc[v] == -1
+         // v é cabeça decomponente aresta-biconexa
+         compR( G, v, ebcc, pa, id++);
+   }
+   free( pre);
+   free( post);
+   free( pa);
+   free( lo);
+   free( vv);
+   return id;
+}
+
+// Função privada auxiliar usada por UGRAPHebcc_v4(). (Muitos livros
+// escrevem "low" no lugar do meu "lo".)
+static void
+dfsRebcc( UGraph G, vertex v, int *ebcc, int *pre,
+          vertex *pa, int *lo, int *pid) {
+   pre[v] = cnt++;
+   //STACKpush( v);
+   lo[v] = pre[v];
+   for (link a = G->adj[v]; a != NULL; a = a->next) {
+      vertex w = a->w;
+      if (pre[w] == -1) {
+         pa[w] = v;
+         dfsRebcc( G, w, ebcc, pre, pa, lo, pid);
+         if (lo[w] < lo[v])
+            lo[v] = lo[w];
+      } else { // w á ancestral próprio de v
+         if (w != pa[v] && pre[w] < lo[v])
+            lo[v] = pre[w];
+      }
+   }
+   if (lo[v] == pre[v]) { // v é cabeça
+      vertex u;
+      do {
+         u = 0;
+         ebcc[u] = *pid;
+         if (DEBUG) {
+            printf( "%d ", u);
+         }
+      } while (u != v);
+      (*pid)++;
+      if (DEBUG) printf( "\n");
+   }
+}
+
+// Esta é uma função-invólucro (= wrapper function). O serviço pesado é
+// executado por dfsRebcc(). Esta é uma implementação on-the-fly do
+// algoritmo de Tarjan para componentes aresta-biconexas.
+int UGRAPHebcc_v4( UGraph G, int *ebcc) {
+   int *pre = mallocc( G->V * sizeof (int));
+   vertex *pa = mallocc( G->V * sizeof (vertex));
+   int *lo = mallocc( G->V * sizeof (int));
+   //STACKinit( G->V);
+   for (vertex v = 0; v < G->V; ++v)
+      pre[v] = ebcc[v] = -1;
+   cnt = 0;
+   int id = 0;
+   for (vertex v = 0; v < G->V; ++v)
+      if (pre[v] == -1) {
+         pa[v] = v;
+         dfsRebcc( G, v, ebcc, pre, pa, lo, &id); // nova etapa
+      }
+   free( pre);
+   free( lo);
+   free( pa);
+   // STACKfree( );
+   return id;
 }
 
 
@@ -867,8 +1277,31 @@ GRAPHreverse( Graph G) {
 
 
 
+
 // Coloração de vértices
 ////////////////////////////////////////////////////////////////////////
+
+int
+UGRAPHseqColoring( UGraph G, int color[]) {
+   int k = 0;
+   for (vertex v = 0; v < G->V; ++v) color[v] = -1;
+   bool *disponivel = mallocc( G->V * sizeof (int));
+   for (vertex v = 0; v < G->V; ++v) {
+      int i;
+      for (i = 0; i < k; ++i)
+         disponivel[i] = true;
+      for (link a = G->adj[v]; a != NULL; a = a->next) {
+         i = color[a->w];
+         if (i != -1) disponivel[i] = false;
+      } // disponivel[0..k-1] dá as cores disponíveis para v
+      for (i = 0; i < k; ++i)
+         if (disponivel[i]) break;
+      if (i < k) color[v] = i;
+      else color[v] = k++;
+   }
+   free( disponivel);
+   return k;
+}
 
 
 
@@ -974,6 +1407,7 @@ UGRAPHmstP2( UGraph G, vertex pa[]) {
 
 
 
+
 // Algoritmo de Kruskal para árvores geradoras de custo mínimo
 // (= MST = minimal spanning tree)
 ////////////////////////////////////////////////////////////////////////
@@ -992,9 +1426,9 @@ comp_edge( const void *aa, const void *bb) {
 }
 
 // Implementação eficiente do algoritmo de Kruskal. Usa union-find.
-// Consome V*(E+V) log^* V unidades de tempo no pior caso. (O código
-// foi copiado, com ligeiras modificações, do Programa 20.5, p.249, de
-// Sedgewick.)
+// Consome V*(E+V) log^* V unidades de tempo no pior caso. Usa a função
+// auxiliar comp_edge(). (O código foi copiado, com ligeiras
+// modificações, do Programa 20.5, p.249, de Sedgewick.)
 int
 UGRAPHmstK1( UGraph G, edge mst[]) {
    // o tipo edge foi definido em GRAPHlist.h:
