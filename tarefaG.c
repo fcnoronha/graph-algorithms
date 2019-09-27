@@ -4,7 +4,7 @@
 // Aluno2:      CAROLINA SENRA MARQUES
 // Número USP2: 10737101
 // Tarefa:      Tarefa G
-// Data:        2019-09-30
+// Data:        2019-09-27
 //
 // DECLARO QUE MINHA DUPLA É A UNICA RESPONSÁVEL POR ESTE PROGRAMA.
 // TODAS AS PARTES DO PROGRAMA, EXCETO AS QUE FORAM FORNECIDAS PELO
@@ -21,6 +21,9 @@
 #include "GRAPHlists.h"
 #include "PQ.h"
 
+// Para testes
+#define DEBUG 0
+
 // Funcao auxiliar que confere se um vertice v pode receber uma cor c
 bool
 is_safe( UGraph G, int c, vertex v, int *colors);
@@ -30,7 +33,7 @@ is_safe( UGraph G, int c, vertex v, int *colors);
 bool
 is_complete( UGraph G, int *colors);
 
-// Retirado de GRAPhlists.c com uma leve alteracao feita
+// Retirado de GRAPHlists.c com uma leve alteracao feita
 // Esta funcao auxiliar sorteia aleatoriamente um vertice de G
 vertex
 rand_v( UGraph G);
@@ -45,9 +48,10 @@ backtracking( UGraph G, vertex v, int *colors);
 void
 print_colors( UGraph G, int *colors);
 
-// Funcao que procura uma coloracao valida para o grafo G sorteando um
-// vertice v e guardando o menor valor de cor valido em colors[v] e
-// repetindo este processo ate que todos os vertices tenham uma cor
+// Implementação de uma heuristica aleatoria. Esse metodo procura uma
+// coloracao valida para o grafo G sorteando um vertice v e guardando o
+// menor valor de cor valido em colors[v] e repetindo este processo ate
+// que todos os vertices tenham uma cor
 int
 heuristica_1( UGraph G, int *colors) {
     int c = 0, max = 0;
@@ -59,15 +63,15 @@ heuristica_1( UGraph G, int *colors) {
             while (!is_safe( G, c, v, colors)) c++;
             colors[v] = c;
         }
+        c = 0;
     }
     for (int v = 0; v < G-> V; v++)
         if (colors[v] > max) max = colors[v];
     return max + 1;
 }
 
-// Funcao que procura uma coloracao valida para o grafo G usando
-// forca bruta, ou seja, testa todas as combinacoes de cores possiveis
-// ate encontrar uma coloracao valida
+// Implementação da heuristica de forca bruta, ou seja, testa todas as
+// combinacoes de cores possiveis ate encontrar uma coloracao valida
 int
 heuristica_2 (UGraph G, int *colors) {
     int max = 0;
@@ -79,6 +83,30 @@ heuristica_2 (UGraph G, int *colors) {
     return max + 1;
 }
 
+// Implementação da heuristica gulosa. Nesse metodo, para cada vertice v
+// a função atribui à este vertice a cor com menor valor possivel
+int
+heuristica_3 (UGraph G, int *colors) {
+    int k = 0;
+    for (vertex v = 0; v < G->V; ++v) colors[v] = -1;
+    bool *disponivel = mallocc( G->V * sizeof (int));
+    for (vertex v = 0; v < G->V; ++v) {
+        int i;
+        for (i = 0; i < k; ++i)
+            disponivel[i] = true;
+        for (link a = G->adj[v]; a != NULL; a = a->next) {
+            i = colors[a->w];
+            if (i != -1) disponivel[i] = false;
+        }
+        for (i = 0; i < k; ++i)
+            if (disponivel[i]) break;
+        if (i < k) colors[v] = i;
+        else colors[v] = k++;
+    }
+    free( disponivel);
+    return k;
+}
+
 // Implementação da heuristica 'largest first'. Nesse metodo, a cada
 // iteração, se pega o vertice com o maior grau que ainda não possui
 // uma cor, e então, tenta associar a cor com menor valor possivel para
@@ -86,7 +114,7 @@ heuristica_2 (UGraph G, int *colors) {
 int
 heuristica_4( UGraph G, int *colors) {
     int *inv_deg = calloc( G->V, sizeof(int));
-    memset( colors, -1, G->V*sizeof(int));
+    memset( colors, -1, G->V * sizeof(int));
 
     for (vertex v  = 0; v < G->V; v++)
         inv_deg[v] = G->V;
@@ -101,8 +129,8 @@ heuristica_4( UGraph G, int *colors) {
     int *used = calloc( G->V, sizeof(int));
     int lowest_color;
     while (!PQempty()) {
-        vertex v = PQdelmin(inv_deg);
-        memset( used, 0, G->V*sizeof(int));
+        vertex v = PQdelmin( inv_deg);
+        memset( used, 0, G->V * sizeof(int));
         for (link a = G->adj[v]; a != NULL; a = a->next) {
             vertex w = a->w;
             if (colors[w] != -1)
@@ -121,10 +149,10 @@ heuristica_4( UGraph G, int *colors) {
         if (lowest_color < colors[v])
             lowest_color = colors[v];
 
-    free(inv_deg);
-    free(used);
+    free( inv_deg);
+    free( used);
     PQfree();
-    return lowest_color+1;
+    return (lowest_color + 1);
 }
 
 // Implementação da heuristica de Brelaz (DSatur). Nesse metodo,
@@ -136,16 +164,17 @@ heuristica_4( UGraph G, int *colors) {
 // a ele.
 int
 heuristica_5( UGraph G, int *colors) {
+    int *used = calloc( G->V, sizeof(int));
     int *degree = calloc( G->V, sizeof(int));
     int *saturation = calloc( G->V, sizeof(int));
-    int *used = calloc(G->V, sizeof(int));
-    memset( colors, -1, G->V*sizeof(int));
+    memset( colors, -1, G->V * sizeof(int));
 
     for (vertex v  = 0; v < G->V; v++)
         for (link a = G->adj[v]; a != NULL; a = a->next)
             degree[a->w]++;
 
     for (int it = 0; it < G->V; it++) {
+        // Procurando o melhor vertice para a iteração atual
         vertex now = -1;
         for (vertex v = 0; v < G->V; v++) {
             if (colors[v] != -1) continue;
@@ -160,8 +189,8 @@ heuristica_5( UGraph G, int *colors) {
                 degree[v] > degree[now])
                 now = v;
         }
-
-        memset( used, 0, G->V*sizeof(int));
+        // Achando melhor cor
+        memset( used, 0, G->V * sizeof(int));
         for (link a = G->adj[now]; a != NULL; a = a->next)
             if (colors[a->w] != -1)
                 used[colors[a->w]] = 1;
@@ -171,7 +200,6 @@ heuristica_5( UGraph G, int *colors) {
                 lowest_color = c;
                 break;
             }
-
         colors[now] = lowest_color;
         // Atualizando saturação
         for (link a = G->adj[now]; a != NULL; a = a->next) {
@@ -191,10 +219,10 @@ heuristica_5( UGraph G, int *colors) {
         if (lowest_color < colors[v])
             lowest_color = colors[v];
 
-    free(used);
-    free(degree);
-    free(saturation);
-    return lowest_color+1;
+    free( used);
+    free( degree);
+    free( saturation);
+    return (lowest_color + 1);
 }
 
 // Função que executa a rotina principal.
@@ -208,9 +236,6 @@ run( int V, int E, int S) {
         exit( EXIT_FAILURE);
     }
 
-    // Para testes
-    int DEBUG = 0;
-
     // Semente
     srand( S);
     // Grafo a ser gerado
@@ -220,22 +245,20 @@ run( int V, int E, int S) {
     if (DEBUG)
         GRAPHshow( G);
 
-    // Variaveis usadas para medição d tempo
+    // Variaveis usadas para medição de tempo
     double start, stop, elapsedTime;
 
     // Armazena as colorações
-    int *colors = malloc( G->V * sizeof(int));
+    int *colors = malloc( G->V*sizeof(int));
 
     // Array de funções que armazena as heuristicas
-    int (*h[5])(UGraph, int*);
-    h[0] = heuristica_1;
-    h[1] = heuristica_2;
-    h[2] = UGRAPHseqColoring;
-    h[3] = heuristica_4;
-    h[4] = heuristica_5;
+    int (*h[5])( UGraph, int*) = {heuristica_1,
+                                heuristica_2,
+                                heuristica_3,
+                                heuristica_4,
+                                heuristica_5};
 
     for (int i = 0; i < 5; i++) {
-
         start = (double) clock () / CLOCKS_PER_SEC;
         int n_colors = h[i]( G, colors);
         stop = (double) clock () / CLOCKS_PER_SEC;
@@ -251,8 +274,8 @@ run( int V, int E, int S) {
     }
 
     // Limpeza final:
-    free(colors);
-    GRAPHdestroy( G);
+    free( colors);
+    UGRAPHdestroy( G);
 }
 
 int
@@ -283,7 +306,7 @@ main (int argc, char* arg[]) {
     // Chamando a rotina
     run( V, E, S);
 
-    return (EXIT_SUCCESS);
+    return( EXIT_SUCCESS);
 }
 
 bool
@@ -328,3 +351,83 @@ print_colors( UGraph G, int *colors) {
         printf( "cor[%d] = %d\n", v, colors[v]);
     printf( "\n");
 }
+
+/*
+
+RELATORIO
+
+- Como executar
+
+$ make 101 && ./101 V E s
+
+V = numero de vertices
+E = numero de arestas
+s = semente
+
+- Observações
+
+Foram escolhidas para esta tarefa, 5 heuristicas: aleatorizada, força
+bruta, gulosa, largest first e a de Brelaz.
+
+As três primeiras não apresentaram muita dificuldade acerca de sua
+implementação.
+
+Para implementação da heuristica de largest first, foi usado um min-heap
+para o consulta do vertice com maior grau que ainda não teve sua cor
+definida.
+
+A heuristica de Brelaz (DSatur) não usou nenhuma estrutura adicional,
+porem, afim de não realizarmos um uso excessivo da memoria do computador
+optamos por fazer a implementação que faz uso excessivo do processador.
+
+A fim de curiosidade, qundo estavamos realizando testes, fizemos alguns
+grafos bipartidos manualmente e verificamos, que, de fato, a heuristica
+de Brelaz produz o resultado otimo quando o grafo é deste tipo.
+
+- Conclusoes
+
+Realizamos testes para sabermos a performance de cada algoritmo, tanto no
+numero de cores usadas quanto no tempo gasto.
+
+A tabela abaixo, mostra o resultado e relação ao numero de cores da
+execução de cada heuristica para diversos valores de V e E, com a
+semente s = 62.
+
+┌────────┬─────────┬────────────┬────────────────┬──────────────────┐
+│ V - E  │ 10 - 30 │ 100 - 3500 │ 10000 - 400000 │ 100000 - 5000000 │
+├────────┼─────────┼────────────┼────────────────┼──────────────────┤
+│ heur 1 │       5 │         32 │             27 │              185 │
+│ heur 2 │       5 │         29 │             27 │              184 │
+│ heur 3 │       5 │         29 │             27 │              184 │
+│ heur 4 │       5 │         27 │             25 │              180 │
+│ heur 5 │       5 │         27 │             22 │              170 │
+└────────┴─────────┴────────────┴────────────────┴──────────────────┘
+
+Conforme o aumento dos valores de V e E, fica cada vez mais claro que a
+heuristica 1 é a mais distante de entregar uma coloração otima, enquanto
+a heuristica 5 é quem fica mais proximo de devolver a coloração otima.
+
+
+A proxima tabela, mostra o resultado e relação ao tempo gasto por cada
+heuristica para diversos valores de V e E, com a semente s = 62. Para
+obter maior consistencia nos dados o tempo apresentado é uma media de 50
+execuções da mesma chamada de funcao.
+
+┌────────┬───────────┬────────────┬────────────────┬──────────────────┐
+│ V - E  │  10 - 30  │ 100 - 3500 │ 10000 - 400000 │ 100000 - 5000000 │
+├────────┼───────────┼────────────┼────────────────┼──────────────────┤
+│ heur 1 │ 0.000008s │ 0.000554s  │  0.236832s     │   3.480093s      │
+│ heur 2 │ 0.000003s │ 0.000468s  │  0.172865s     │   2.697173s      │
+│ heur 3 │ 0.000005s │ 0.000185s  │  0.156896s     │   1.473255s      │
+│ heur 4 │ 0.000008s │ 0.000355s  │  0.326953s     │   2.778469s      │
+│ heur 5 │ 0.000017s │ 0.012338s  │  41.37471s     │   1813.358s      │
+└────────┴───────────┴────────────┴────────────────┴──────────────────┘
+
+Com ela, fica claro que as quatro primeiras heuristicas consomem quase o
+mesmo tempo, mas a 5 (DSatur) consome um tempo consideravelmente maior
+para calcular a coloração
+No geral, a heuristica aleatoriza usa um número maior de cores do que as
+outras heuristicas, apesar disso, em alguns casos ela pode ser mais
+rapida do que algumas das heuristicas mais complexas.
+
+*/
